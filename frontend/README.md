@@ -184,6 +184,28 @@ The design can stay simple, but it should not look unfinished.
 
 ## How to run
 
-1. Install dependencies:
+If the Angular app has not been scaffolded yet in this folder, create it first:
+
+```bash
+cd frontend
+npx @angular/cli@latest new med-stalker-frontend --routing --style=css --skip-git
+```
+
+Then start the frontend:
+
+1. Go to the Angular project directory:
+   ```bash
+   cd frontend/med-stalker-frontend
+   ```
+2. Install dependencies:
    ```bash
    npm install
+   ```
+3. Run the development server:
+   ```bash
+   npx ng serve --port 4200
+   ```
+4. Open in browser:
+   ```text
+   http://localhost:4200
+   ```
