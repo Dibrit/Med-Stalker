@@ -92,3 +92,60 @@ Configure CORS using `django-cors-headers`.
 Allow Angular dev server:
 ```text
 http://localhost:4200
+```
+
+---
+
+## Requirements
+
+- Python 3.11+
+- `uv`
+
+---
+
+## Build and Run
+
+From the project root:
+
+1. Move to backend folder:
+   ```bash
+   cd backend
+   ```
+2. Create virtual environment:
+   ```bash
+   uv venv
+   ```
+3. Activate environment:
+   ```bash
+   source .venv/bin/activate
+   ```
+4. Initialize project metadata (first run only):
+   ```bash
+   uv init --bare
+   ```
+5. Add dependencies:
+   ```bash
+   uv add django djangorestframework djangorestframework-simplejwt django-cors-headers
+   ```
+6. Sync environment:
+   ```bash
+   uv sync
+   ```
+7. Apply database migrations:
+   ```bash
+   uv run python manage.py makemigrations
+   uv run python manage.py migrate
+   ```
+8. Create admin user (first run only):
+   ```bash
+   uv run python manage.py createsuperuser
+   ```
+9. Start backend service:
+   ```bash
+   uv run python manage.py runserver 0.0.0.0:8000
+   ```
+
+Backend base URL:
+```text
+http://localhost:8000
+```
