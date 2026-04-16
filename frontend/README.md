@@ -184,18 +184,11 @@ The design can stay simple, but it should not look unfinished.
 
 ## How to run
 
-If the Angular app has not been scaffolded yet in this folder, create it first:
+The Angular app now lives directly in the `frontend` folder (flat layout).
 
-```bash
-cd frontend
-npx @angular/cli@latest new med-stalker-frontend --routing --style=css --skip-git
-```
-
-Then start the frontend:
-
-1. Go to the Angular project directory:
+1. Go to the frontend directory:
    ```bash
-   cd frontend/med-stalker-frontend
+   cd frontend
    ```
 2. Install dependencies:
    ```bash
