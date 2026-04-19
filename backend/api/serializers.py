@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth import authenticate
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Diagnosis, PatientProfile, Prescription
@@ -85,6 +86,11 @@ class DiagnosisSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "patient", "recorded_by_id", "created_at", "updated_at")
 
+    def validate_diagnosed_at(self, value):
+        if value > timezone.now():
+            raise serializers.ValidationError("Diagnosis date cannot be in the future.")
+        return value
+
     def create(self, validated_data):
         request = self.context["request"]
         validated_data["recorded_by"] = request.user.doctor_profile
@@ -125,14 +131,24 @@ class PrescriptionSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         diagnosis = attrs.get("diagnosis")
         patient = attrs.get("patient")
+        issued_at = attrs.get("issued_at")
+        valid_until = attrs.get("valid_until")
         if self.partial:
             if patient is None and self.instance is not None:
                 patient = self.instance.patient
             if diagnosis is None and self.instance is not None:
                 diagnosis = self.instance.diagnosis
+            if issued_at is None and self.instance is not None:
+                issued_at = self.instance.issued_at
+            if valid_until is None and self.instance is not None:
+                valid_until = self.instance.valid_until
         if diagnosis and patient and diagnosis.patient_id != patient.pk:
             raise serializers.ValidationError(
                 {"diagnosis": "Diagnosis must belong to the selected patient."}
+            )
+        if issued_at and valid_until and valid_until < issued_at.date():
+            raise serializers.ValidationError(
+                {"valid_until": "valid_until cannot be earlier than issued_at."}
             )
         return attrs
 

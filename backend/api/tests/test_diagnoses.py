@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -66,6 +68,19 @@ class DiagnosisListCreateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["title"], "New")
         self.assertEqual(response.data["recorded_by_id"], self.doctor.doctor_profile.pk)
+
+    def test_doctor_cannot_create_future_diagnosis(self):
+        payload = {
+            "patient_id": self.patient.patient_profile.pk,
+            "title": "Future diagnosis",
+            "description": "note",
+            "icd_code": "A00",
+            "status": Diagnosis.Status.ACTIVE,
+            "diagnosed_at": (timezone.now() + timedelta(days=1)).isoformat(),
+        }
+        response = self.client.post("/api/diagnoses/", payload, format="json", **self._auth(self.doctor))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("diagnosed_at", response.data)
 
 
 class DiagnosisDetailTests(APITestCase):

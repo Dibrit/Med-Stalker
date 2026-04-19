@@ -96,6 +96,24 @@ class PrescriptionListCreateTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_create_rejects_valid_until_before_issued_at(self):
+        payload = {
+            "patient_id": self.patient.patient_profile.pk,
+            "diagnosis": self.diagnosis.pk,
+            "medication_name": "Bad date",
+            "instructions": "n/a",
+            "issued_at": timezone.now().isoformat(),
+            "valid_until": "2000-01-01",
+        }
+        response = self.client.post(
+            "/api/prescriptions/",
+            payload,
+            format="json",
+            **self._auth(self.doctor),
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("valid_until", response.data)
+
 
 class PrescriptionDetailTests(APITestCase):
     def setUp(self):
