@@ -120,6 +120,25 @@ To load the same keys into an interactive shell (for non-Django tools), common o
 
 All commands below assume your shell’s **current directory is `backend/`** (from the repository root: `cd backend`).
 
+### Using the Makefile (recommended)
+
+This folder includes a `Makefile` that wraps the common `uv run …` commands:
+
+```bash
+make help
+```
+
+Common targets:
+
+```bash
+make sync          # install/update dependencies into .venv (uses uv.lock)
+make migrate       # apply migrations
+make run           # start API on 0.0.0.0:8000
+make test          # run tests
+```
+
+If you don’t have `make` installed, you can run the equivalent `uv …` commands shown below.
+
 ### First time on a machine
 
 1. **Optional — environment file** (recommended so you can tune logging and secrets without exporting variables manually):
@@ -133,19 +152,19 @@ All commands below assume your shell’s **current directory is `backend/`** (fr
 2. **Install dependencies** (creates or updates `.venv/` and installs locked versions from `uv.lock`):
 
    ```bash
-   uv sync
+   uv sync   # or: make sync
    ```
 
 3. **Apply migrations** (creates/updates the SQLite database):
 
    ```bash
-   uv run python manage.py migrate
+   uv run python manage.py migrate   # or: make migrate
    ```
 
 4. **Optional — Django admin** (browse `/admin/` after starting the server):
 
    ```bash
-   uv run python manage.py createsuperuser
+   uv run python manage.py createsuperuser   # or: make superuser
    ```
 
 You do **not** need `uv init` or `uv add` when working from this repository; dependencies are already declared in `pyproject.toml` and pinned in `uv.lock`.
@@ -153,7 +172,7 @@ You do **not** need `uv init` or `uv add` when working from this repository; dep
 ### Start the API
 
 ```bash
-uv run python manage.py runserver 0.0.0.0:8000
+uv run python manage.py runserver 0.0.0.0:8000   # or: make run
 ```
 
 - **Base URL:** `http://localhost:8000`
@@ -164,27 +183,27 @@ Stop the server with **Ctrl+C**.
 ### After pulling changes or editing dependencies
 
 ```bash
-uv sync
-uv run python manage.py migrate
+uv sync                         # or: make sync
+uv run python manage.py migrate  # or: make migrate
 ```
 
 ### If you change models
 
 ```bash
-uv run python manage.py makemigrations
-uv run python manage.py migrate
+uv run python manage.py makemigrations  # or: make makemigrations
+uv run python manage.py migrate         # or: make migrate
 ```
 
 ### Run tests
 
 ```bash
-uv run python manage.py test
+uv run python manage.py test   # or: make test
 ```
 
 ### Shell with Django context
 
 ```bash
-uv run python manage.py shell
+uv run python manage.py shell   # or: make shell
 ```
 
 ### Production note
