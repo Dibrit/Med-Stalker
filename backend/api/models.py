@@ -1,3 +1,154 @@
+from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
-# Create your models here.
+User = get_user_model()
+
+
+class DoctorProfile(models.Model):
+    """Extended profile for users who act as doctors in the system."""
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="doctor_profile",
+    )
+    specialization = models.CharField(max_length=255, blank=True)
+    license_number = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["user__username"]
+
+    def __str__(self) -> str:
+        return f"Doctor: {self.user.get_username()}"
+
+
+class PatientProfile(models.Model):
+    """Extended profile for users who are patients."""
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="patient_profile",
+    )
+    date_of_birth = models.DateField(null=True, blank=True)
+    phone = models.CharField(max_length=32, blank=True)
+    medical_record_number = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text=_("Optional clinic-specific patient identifier."),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["user__username"]
+
+    def __str__(self) -> str:
+        return f"Patient: {self.user.get_username()}"
+
+
+class DiagnosisQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(status=Diagnosis.Status.ACTIVE)
+
+
+class DiagnosisManager(models.Manager):
+    def get_queryset(self):
+        return DiagnosisQuerySet(self.model, using=self._db)
+
+    def active(self):
+        return self.get_queryset().active()
+
+
+class Diagnosis(models.Model):
+    """A diagnosis assigned to a patient and recorded by a doctor."""
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        RESOLVED = "resolved", _("Resolved")
+        CHRONIC = "chronic", _("Chronic")
+
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        related_name="diagnoses",
+    )
+    recorded_by = models.ForeignKey(
+        DoctorProfile,
+        on_delete=models.PROTECT,
+        related_name="recorded_diagnoses",
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    icd_code = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text=_("Optional ICD or similar coding system identifier."),
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+    )
+    diagnosed_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = DiagnosisManager()
+
+    class Meta:
+        ordering = ["-diagnosed_at", "-pk"]
+        verbose_name_plural = "diagnoses"
+        indexes = [
+            models.Index(fields=["patient", "-diagnosed_at"]),
+            models.Index(fields=["recorded_by", "-diagnosed_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.patient})"
+
+
+class Prescription(models.Model):
+    """Prescription or recommendation for a patient, optionally tied to a diagnosis."""
+
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        related_name="prescriptions",
+    )
+    prescribed_by = models.ForeignKey(
+        DoctorProfile,
+        on_delete=models.PROTECT,
+        related_name="prescriptions_written",
+    )
+    diagnosis = models.ForeignKey(
+        Diagnosis,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="prescriptions",
+    )
+    medication_name = models.CharField(max_length=255, blank=True)
+    instructions = models.TextField(
+        help_text=_("Dosage, schedule, lifestyle recommendation, or other instructions."),
+    )
+    issued_at = models.DateTimeField()
+    valid_until = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-issued_at", "-pk"]
+        indexes = [
+            models.Index(fields=["patient", "-issued_at"]),
+            models.Index(fields=["prescribed_by", "-issued_at"]),
+        ]
+
+    def __str__(self) -> str:
+        label = self.medication_name or _("Recommendation")
+        return f"{label} → {self.patient}"
