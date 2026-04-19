@@ -69,8 +69,9 @@ A patient can:
 ## Repository Structure
 
 ```text
-medical-web-app/
+Med-Stalker/
 ├── backend/
 ├── frontend/
 ├── docs/
 └── README.md
+```

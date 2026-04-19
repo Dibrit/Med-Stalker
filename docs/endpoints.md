@@ -2,9 +2,9 @@
 
 This document consolidates endpoint expectations from:
 
-- Root [`README.md`](/home/alexander/Projects/Med-Stalker/README.md)
-- Backend [`backend/README.md`](/home/alexander/Projects/Med-Stalker/backend/README.md)
-- Frontend [`frontend/README.md`](/home/alexander/Projects/Med-Stalker/frontend/README.md)
+- Root [`README.md`](../README.md)
+- Backend [`backend/README.md`](../backend/README.md)
+- Frontend [`frontend/README.md`](../frontend/README.md)
 
 ## Base URL
 
@@ -125,6 +125,8 @@ The READMEs require create/manage functionality. Suggested endpoints:
 | PATCH | `/api/prescriptions/{id}/` | Yes | Partially update prescription/recommendation |
 | DELETE | `/api/prescriptions/{id}/` | Yes | Delete prescription/recommendation |
 
+When creating or updating a prescription with a `diagnosis` foreign key, that diagnosis must belong to the same patient as `patient_id`; otherwise the API responds with **400**.
+
 ## Common Error Responses (Suggested)
 
 | Status | Meaning |
@@ -133,6 +135,21 @@ The READMEs require create/manage functionality. Suggested endpoints:
 | 401 | Unauthorized (missing/invalid token) |
 | 403 | Forbidden (role/access denied) |
 | 404 | Resource not found |
+
+## Role-based access (implemented backend)
+
+Users must have either a **doctor** or **patient** profile (created in the database alongside their user account). A JWT alone is not enough: users without a profile receive **403** on entity endpoints.
+
+| Area | Doctor | Patient |
+|---|---|---|
+| Patients `GET /api/patients/` | All patients | Own profile only |
+| Patients `GET /api/patients/{id}/` | Any id | Own id only (other ids → **404**) |
+| Diagnoses `GET` list / detail | All diagnoses | Own diagnoses only (other detail ids → **404**) |
+| Diagnoses `POST`, `PUT`, `PATCH`, `DELETE` | Allowed (subject to validation) | **403** (read-only) |
+| Prescriptions `GET` list / detail | All | Own only |
+| Prescriptions `POST`, `PUT`, `PATCH`, `DELETE` | Allowed | **403** |
+
+Logout requires `Authorization: Bearer <access>` plus a valid `refresh` in the JSON body so the server can blacklist that refresh token.
 
 ## Notes for Frontend Integration
 
