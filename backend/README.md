@@ -200,6 +200,22 @@ uv run python manage.py migrate         # or: make migrate
 uv run python manage.py test   # or: make test
 ```
 
+### Seed realistic demo data (local dev)
+
+This project includes a management command that generates **real-looking** demo users and medical records.
+
+```bash
+make seed
+```
+
+You can customize counts and keep the output reproducible:
+
+```bash
+uv run python manage.py seed_dev_data --seed 42 --doctors 5 --patients 30 --diagnoses 120 --prescriptions 120
+```
+
+Created users are named like `demo_doctor_001` / `demo_patient_001` (override with `--prefix`) and all share the same dev password (override with `--password`).
+
 ### Shell with Django context
 
 ```bash

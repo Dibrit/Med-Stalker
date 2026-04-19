@@ -28,6 +28,9 @@ shell: ## Django shell
 superuser: ## Create Django admin user
 	uv run python manage.py createsuperuser
 
+seed: ## Seed realistic dev data (demo_* users)
+	uv run python manage.py seed_dev_data
+
 clean: ## Remove local venv + caches (safe locally)
 	rm -rf .venv
 	rm -rf .pytest_cache
