@@ -1,7 +1,11 @@
+import logging
+
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 from .models import Diagnosis, PatientProfile, Prescription
+
+logger = logging.getLogger(__name__)
 
 
 class LoginSerializer(serializers.Serializer):
@@ -15,8 +19,14 @@ class LoginSerializer(serializers.Serializer):
             password=attrs["password"],
         )
         if user is None:
+            logger.warning("Login failed: invalid credentials for username=%r", attrs["username"])
             raise serializers.ValidationError("Invalid username or password.")
         if not user.is_active:
+            logger.warning(
+                "Login failed: inactive user username=%r user_id=%s",
+                attrs["username"],
+                user.pk,
+            )
             raise serializers.ValidationError("User account is disabled.")
         attrs["user"] = user
         return attrs

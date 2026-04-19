@@ -1,5 +1,11 @@
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 def main():
-    print("Hello from backend!")
+    logger.info("Hello from backend!")
 
 
 if __name__ == "__main__":

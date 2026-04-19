@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
@@ -18,6 +20,8 @@ from .serializers import (
     PrescriptionSerializer,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -25,6 +29,7 @@ def auth_login(request):
     serializer = LoginSerializer(data=request.data, context={"request": request})
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data["user"]
+    logger.info("Login succeeded for user_id=%s", user.pk)
     refresh = RefreshToken.for_user(user)
     return Response(
         {
@@ -44,10 +49,15 @@ def auth_logout(request):
         token = RefreshToken(serializer.validated_data["refresh"])
         token.blacklist()
     except TokenError:
+        logger.warning(
+            "Logout failed: invalid refresh token for user_id=%s",
+            request.user.pk,
+        )
         return Response(
             {"detail": "Invalid or expired refresh token."},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    logger.info("Logout succeeded for user_id=%s", request.user.pk)
     return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
 
 
@@ -79,6 +89,12 @@ class DiagnosisListCreateView(APIView):
         serializer = DiagnosisSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        logger.info(
+            "Diagnosis created id=%s patient_id=%s by user_id=%s",
+            serializer.instance.pk,
+            serializer.instance.patient_id,
+            request.user.pk,
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -105,7 +121,15 @@ class DiagnosisDetailView(APIView):
         if not getattr(request.user, "doctor_profile", None):
             raise PermissionDenied("Only doctors can delete diagnoses.")
         diagnosis = self.get_object(pk)
+        diagnosis_id = diagnosis.pk
+        patient_id = diagnosis.patient_id
         diagnosis.delete()
+        logger.info(
+            "Diagnosis deleted id=%s patient_id=%s by user_id=%s",
+            diagnosis_id,
+            patient_id,
+            request.user.pk,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def _update(self, request, pk, *, partial):
@@ -120,6 +144,12 @@ class DiagnosisDetailView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        logger.info(
+            "Diagnosis updated id=%s partial=%s by user_id=%s",
+            diagnosis.pk,
+            partial,
+            request.user.pk,
+        )
         return Response(serializer.data)
 
 
@@ -173,7 +203,13 @@ class PrescriptionListCreateView(generics.ListCreateAPIView):
         return _prescription_queryset_for_user(self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save()
+        instance = serializer.save()
+        logger.info(
+            "Prescription created id=%s patient_id=%s by user_id=%s",
+            instance.pk,
+            instance.patient_id,
+            self.request.user.pk,
+        )
 
 
 class PrescriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -188,3 +224,24 @@ class PrescriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return _prescription_queryset_for_user(self.request.user)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        logger.info(
+            "Prescription updated id=%s patient_id=%s by user_id=%s",
+            instance.pk,
+            instance.patient_id,
+            self.request.user.pk,
+        )
+
+    def perform_destroy(self, instance):
+        prescription_id = instance.pk
+        patient_id = instance.patient_id
+        user_id = self.request.user.pk
+        super().perform_destroy(instance)
+        logger.info(
+            "Prescription deleted id=%s patient_id=%s by user_id=%s",
+            prescription_id,
+            patient_id,
+            user_id,
+        )
