@@ -1,96 +1,94 @@
 # Backend
+## Main goal
 
-This folder contains the backend service for the **Medical Web Application**.  
-It is built with **Django** and **Django REST Framework** and exposes a REST API consumed by the Angular frontend.
+The backend must provide a REST API for the frontend and store all medical data.
 
-The backend is responsible for:
-- authentication and authorization
-- role-based permissions
-- medical data storage
-- request validation
-- business logic
-- JSON API responses
+The system should support:
 
-This backend is intended for a semester project / student demo environment. The default development setup uses **SQLite**, but the structure is organized so that it can be migrated to PostgreSQL later if needed.
-
----
-
-## 1. Technology Stack
-
-- Python
-- Django
-- Django REST Framework
-- Simple JWT
-- django-cors-headers
-- SQLite (development)
-- Postman (API testing)
-- Optional local tooling:
-    - `uv`
-    - Docker / Docker Compose
-
-`uv` is a modern Python project manager that works with `pyproject.toml`, creates a project virtual environment, and supports commands such as `uv sync` and `uv run`. Docker Compose supports defining services with a `build` section and environment configuration through `.env` / `env_file`.
+- doctor and patient users
+- login and logout with JWT
+- patient data access
+- diagnosis management
+- prescription/recommendation management
+- role-based access control
 
 ---
 
-## 2. Backend Responsibilities
+## What must be implemented
 
-The backend handles:
+### 1. Models
+Create at least **4 models**.
 
-- login and logout
-- JWT token generation and validation
-- current-user identity endpoint
-- doctor vs patient authorization
-- patient profile management
-- diagnosis CRUD
-- prescription CRUD
-- recommendation creation and retrieval
-- cross-origin access for Angular development
-- data ownership rules using `request.user`
+Recommended models:
+- `DoctorProfile`
+- `PatientProfile`
+- `Diagnosis`
+- `Prescription`
 
-The backend is the source of truth for:
-- who is allowed to perform an action
-- which doctor created a record
-- which patient owns a record
-- what input data is valid
+Requirements:
+- include at least **2 ForeignKey** relationships
+- optionally add **1 custom model manager**
+- use SQLite as the database
 
 ---
 
-## 3. Project Structure
+### 2. Authentication
+Implement **JWT-based authentication**.
 
-Recommended backend structure:
+Required endpoints:
+- `POST /api/auth/login/`
+- `POST /api/auth/logout/`
+- `POST /api/auth/refresh/`
 
+Behavior:
+- login returns access and refresh tokens
+- logout invalidates the refresh token
+- protected endpoints require JWT in the `Authorization` header
+
+---
+
+### 3. API functionality
+Implement REST endpoints for the main entities.
+
+Minimum required functionality:
+- list patients
+- get patient details
+- full CRUD for at least **one model**
+- recommended CRUD target: `Diagnosis`
+- create prescriptions/recommendations for patients
+
+When creating medical records:
+- link created objects to the authenticated user with `request.user`
+
+---
+
+### 4. Serializers
+Required:
+- at least **2 serializers** based on `serializers.Serializer`
+- at least **2 serializers** based on `serializers.ModelSerializer`
+
+Recommended:
+- `LoginSerializer`
+- `LogoutSerializer`
+- `DiagnosisSerializer`
+- `PrescriptionSerializer`
+
+---
+
+### 5. Views
+Required:
+- at least **2 Function-Based Views** using DRF decorators
+- at least **2 Class-Based Views** using `APIView`
+
+Recommended:
+- function-based views for login and logout
+- class-based views for diagnosis list/create and diagnosis detail/update/delete
+
+---
+
+### 6. CORS
+Configure CORS using `django-cors-headers`.
+
+Allow Angular dev server:
 ```text
-backend/
-├── README.md
-├── pyproject.toml
-├── uv.lock
-├── .env.example
-├── manage.py
-├── config/
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   ├── asgi.py
-│   └── wsgi.py
-└── apps/
-    ├── accounts/
-    │   ├── models.py
-    │   ├── serializers.py
-    │   ├── views.py
-    │   ├── urls.py
-    │   └── permissions.py
-    ├── patients/
-    │   ├── models.py
-    │   ├── serializers.py
-    │   ├── views.py
-    │   └── urls.py
-    ├── medical/
-    │   ├── models.py
-    │   ├── serializers.py
-    │   ├── views.py
-    │   ├── managers.py
-    │   └── urls.py
-    └── core/
-        ├── permissions.py
-        ├── constants.py
-        └── utils.py
+http://localhost:4200

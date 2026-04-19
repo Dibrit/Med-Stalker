@@ -1,93 +1,76 @@
 # Med-Stalker
-Alexandr Chernov
-Nesvetailov Artem
+## Authors
+Alexandr Chernov & Nesvetailov Artem
 
-A project built with **Django REST Framework** and **Angular**.
+## Project Overview
 
-This project is a medical web application where doctors and patients interact through a web interface. Doctors can manage patient-related medical data, create diagnoses, issue prescriptions, and add recommendations. Patients can securely log in and view their own medical records.
+This project is a **Medical Web Application** built for a Web Development course.
 
-## Project Structure
+The main goal of the system is to create a web platform where **doctors** and **patients** can interact through a structured medical record system. Doctors can manage patient-related medical data, assign diagnoses, and create prescriptions or recommendations. Patients can log in and view their own medical information.
 
-This repository is organized as a **monorepo** with two separate services:
+The project is designed as a full-stack application with:
 
-- `backend/` — Django + Django REST Framework API
-- `frontend/` — Angular single-page application
+- **Backend:** Django + Django REST Framework
+- **Frontend:** Angular
+- **Database:** SQLite
 
-Even though both parts are stored in one repository, they are designed as separate services communicating through a REST API.
+Both parts are stored in a **single monorepo**, but they are developed as **separate services** that communicate through a REST API.
 
-## Main Features
+---
+
+## Main Purpose
+
+The purpose of this project is to demonstrate how a modern web application can be built with:
+
+- separate frontend and backend layers
+- token-based authentication
+- REST API communication
+- CRUD operations
+- role-based access
+- structured project organization in a monorepo
+
+This project is also intended to give two students a clear division of work:
+
+- one student focuses on the **backend**
+- one student focuses on the **frontend**
+
+---
+
+## Main Users
 
 ### Doctor
-- Log in securely
-- View patient list
-- Open patient detail page
-- Create, update, and delete diagnoses
-- Create and manage prescriptions
-- Add medical recommendations
+A doctor can:
+- log in to the system
+- view patients
+- assign diagnoses
+- create prescriptions or recommendations
+- manage medical records
 
 ### Patient
-- Log in securely
-- View personal medical records
-- View diagnoses, prescriptions, and recommendations
-- Access only own data
+A patient can:
+- log in to the system
+- view their own diagnoses
+- view their own prescriptions and recommendations
 
-## Technology Stack
+---
 
-### Backend
-- Python
-- Django
-- Django REST Framework
-- Simple JWT
-- django-cors-headers
-- SQLite (development)
+## Core Features
 
-### Frontend
-- Angular
-- TypeScript
-- HttpClient
-- FormsModule
-- CSS
+- JWT-based login and logout
+- patient list and detail view
+- diagnosis management
+- prescription/recommendation management
+- protected API endpoints
+- frontend integration with backend API
+- clean separation between services
 
-## Architecture
+---
 
-The application follows a client-server architecture:
-
-- Angular handles the user interface, routing, forms, and API calls.
-- Django provides REST endpoints, authentication, permissions, and business logic.
-- Authentication is implemented with JWT tokens.
-- The frontend communicates with the backend using JSON over HTTP.
-
-## Repository Layout
+## Repository Structure
 
 ```text
 medical-web-app/
-├── README.md
-├── docs/
-│   ├── architecture.md
-│   ├── api-contract.md
-│   ├── work-plan.md
-│   └── postman/
-│       ├── medical-app.postman_collection.json
-│       └── local.postman_environment.json
 ├── backend/
-│   ├── README.md
-│   ├── requirements.txt
-│   ├── .env.example
-│   ├── manage.py
-│   ├── config/
-│   └── apps/
-│       ├── accounts/
-│       ├── patients/
-│       ├── medical/
-│       └── core/
-└── frontend/
-    ├── README.md
-    ├── package.json
-    ├── angular.json
-    └── src/
-        ├── app/
-        │   ├── core/
-        │   ├── shared/
-        │   └── features/
-        ├── environments/
-        └── styles.css
+├── frontend/
+├── docs/
+└── README.md
