@@ -187,7 +187,7 @@ LOGGING = {
         },
         "django.server": {
             "handlers": ["console"],
-            "level": "INFO",
+            "level": _LOG_LEVEL,
             "propagate": False,
         },
         "api": {
