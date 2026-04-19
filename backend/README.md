@@ -103,6 +103,19 @@ http://localhost:4200
 
 ---
 
+## Environment variables
+
+Local development can use a **`backend/.env`** file (gitignored). On startup, `config/settings.py` loads it with **`python-dotenv`**. Values that are **already set in the process environment are not overwritten** by the file, so production or CI can inject secrets and they take precedence.
+
+1. Copy the template: `cp .env.example .env`
+2. Edit `.env` with your values (see comments in `.env.example`).
+
+Supported keys include those referenced in `config/settings.py` (for example `DJANGO_SECRET_KEY`, `DJANGO_LOG_LEVEL`, `API_LOG_LEVEL`). For production, prefer your host’s native mechanism (**systemd** `Environment=`, **Docker** `env_file` / `-e`, **Kubernetes** `Secret` + env) instead of committing a `.env` file.
+
+To load the same keys into an interactive shell (for non-Django tools), common options are **[direnv](https://direnv.net/)** with an `.envrc` that sources `.env`, or running one-off commands with `export VAR=value` as your platform documents.
+
+---
+
 ## Tests
 
 ```bash
