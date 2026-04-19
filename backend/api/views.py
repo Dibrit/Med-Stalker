@@ -62,17 +62,17 @@ def auth_logout(request):
 
 
 def _diagnosis_queryset_for_user(user):
+    qs = Diagnosis.objects.select_related(
+        "patient",
+        "patient__user",
+        "recorded_by",
+        "recorded_by__user",
+    )
     if getattr(user, "doctor_profile", None):
-        return Diagnosis.objects.all()
+        return qs.all()
     if getattr(user, "patient_profile", None):
-        return Diagnosis.objects.filter(patient=user.patient_profile)
-    return Diagnosis.objects.none()
-
-
-def _ensure_diagnosis_visible(user, diagnosis: Diagnosis) -> None:
-    qs = _diagnosis_queryset_for_user(user)
-    if not qs.filter(pk=diagnosis.pk).exists():
-        raise PermissionDenied("You do not have access to this diagnosis.")
+        return qs.filter(patient=user.patient_profile)
+    return qs.none()
 
 
 class DiagnosisListCreateView(APIView):
@@ -102,9 +102,7 @@ class DiagnosisDetailView(APIView):
     permission_classes = [IsAuthenticated, IsDoctorOrPatient]
 
     def get_object(self, pk):
-        diagnosis = get_object_or_404(Diagnosis, pk=pk)
-        _ensure_diagnosis_visible(self.request.user, diagnosis)
-        return diagnosis
+        return get_object_or_404(_diagnosis_queryset_for_user(self.request.user), pk=pk)
 
     def get(self, request, pk):
         diagnosis = self.get_object(pk)
@@ -160,9 +158,9 @@ class PatientListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         if getattr(user, "doctor_profile", None):
-            return PatientProfile.objects.all()
+            return PatientProfile.objects.select_related("user").all()
         if getattr(user, "patient_profile", None):
-            return PatientProfile.objects.filter(pk=user.patient_profile.pk)
+            return PatientProfile.objects.select_related("user").filter(pk=user.patient_profile.pk)
         return PatientProfile.objects.none()
 
 
@@ -174,19 +172,18 @@ class PatientDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         user = self.request.user
         if getattr(user, "doctor_profile", None):
-            return PatientProfile.objects.all()
+            return PatientProfile.objects.select_related("user").all()
         if getattr(user, "patient_profile", None):
-            return PatientProfile.objects.filter(pk=user.patient_profile.pk)
+            return PatientProfile.objects.select_related("user").filter(pk=user.patient_profile.pk)
         return PatientProfile.objects.none()
 
 
 def _prescription_queryset_for_user(user):
+    related = ("patient", "patient__user", "diagnosis", "prescribed_by", "prescribed_by__user")
     if getattr(user, "doctor_profile", None):
-        return Prescription.objects.select_related("patient", "patient__user", "diagnosis")
+        return Prescription.objects.select_related(*related)
     if getattr(user, "patient_profile", None):
-        return Prescription.objects.filter(patient=user.patient_profile).select_related(
-            "patient", "patient__user", "diagnosis"
-        )
+        return Prescription.objects.filter(patient=user.patient_profile).select_related(*related)
     return Prescription.objects.none()
 
 

@@ -87,6 +87,17 @@ class DiagnosisDetailTests(APITestCase):
         response = self.client.get(url, **self._auth(self.patient))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_patient_cannot_retrieve_other_patients_diagnosis(self):
+        other = create_patient_user(username="other_dx_pat", password="pw")
+        other_diagnosis = create_diagnosis(
+            patient=other.patient_profile,
+            doctor=self.doctor.doctor_profile,
+            title="Private",
+        )
+        url = f"/api/diagnoses/{other_diagnosis.pk}/"
+        response = self.client.get(url, **self._auth(self.patient))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_patient_cannot_update_diagnosis(self):
         url = f"/api/diagnoses/{self.diagnosis.pk}/"
         response = self.client.patch(

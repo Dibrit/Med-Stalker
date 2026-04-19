@@ -98,8 +98,17 @@ http://localhost:4200
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.13+ (see `pyproject.toml`)
 - `uv`
+
+---
+
+## Tests
+
+```bash
+cd backend
+uv run python manage.py test
+```
 
 ---
 
@@ -149,3 +158,5 @@ Backend base URL:
 ```text
 http://localhost:8000
 ```
+
+For production deployments, set a strong `DJANGO_SECRET_KEY` environment variable instead of relying on the development default in `config/settings.py`.
