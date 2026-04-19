@@ -98,8 +98,8 @@ http://localhost:4200
 
 ## Requirements
 
-- Python 3.13+ (see `pyproject.toml`)
-- `uv`
+- **Python 3.13+** (see `pyproject.toml` for `requires-python`)
+- **[uv](https://docs.astral.sh/uv/)** package manager (install per [uv installation](https://docs.astral.sh/uv/getting-started/installation/))
 
 ---
 
@@ -116,60 +116,86 @@ To load the same keys into an interactive shell (for non-Django tools), common o
 
 ---
 
-## Tests
+## Run the backend (local development)
 
-```bash
-cd backend
-uv run python manage.py test
-```
+All commands below assume your shell’s **current directory is `backend/`** (from the repository root: `cd backend`).
 
----
+### First time on a machine
 
-## Build and Run
+1. **Optional — environment file** (recommended so you can tune logging and secrets without exporting variables manually):
 
-From the project root:
+   ```bash
+   cp .env.example .env
+   ```
 
-1. Move to backend folder:
-   ```bash
-   cd backend
-   ```
-2. Create virtual environment:
-   ```bash
-   uv venv
-   ```
-3. Activate environment:
-   ```bash
-   source .venv/bin/activate
-   ```
-4. Initialize project metadata (first run only):
-   ```bash
-   uv init --bare
-   ```
-5. Add dependencies:
-   ```bash
-   uv add django djangorestframework djangorestframework-simplejwt django-cors-headers
-   ```
-6. Sync environment:
+   See [Environment variables](#environment-variables) for what goes in `.env`.
+
+2. **Install dependencies** (creates or updates `.venv/` and installs locked versions from `uv.lock`):
+
    ```bash
    uv sync
    ```
-7. Apply database migrations:
+
+3. **Apply migrations** (creates/updates the SQLite database):
+
    ```bash
-   uv run python manage.py makemigrations
    uv run python manage.py migrate
    ```
-8. Create admin user (first run only):
+
+4. **Optional — Django admin** (browse `/admin/` after starting the server):
+
    ```bash
    uv run python manage.py createsuperuser
    ```
-9. Start backend service:
-   ```bash
-   uv run python manage.py runserver 0.0.0.0:8000
-   ```
 
-Backend base URL:
-```text
-http://localhost:8000
+You do **not** need `uv init` or `uv add` when working from this repository; dependencies are already declared in `pyproject.toml` and pinned in `uv.lock`.
+
+### Start the API
+
+```bash
+uv run python manage.py runserver 0.0.0.0:8000
 ```
 
-For production deployments, set a strong `DJANGO_SECRET_KEY` environment variable instead of relying on the development default in `config/settings.py`.
+- **Base URL:** `http://localhost:8000`
+- **API:** routes live under the app’s URL config (for example `/api/…`; see `docs/endpoints.md` at the repo root for a concise list).
+
+Stop the server with **Ctrl+C**.
+
+### After pulling changes or editing dependencies
+
+```bash
+uv sync
+uv run python manage.py migrate
+```
+
+### If you change models
+
+```bash
+uv run python manage.py makemigrations
+uv run python manage.py migrate
+```
+
+### Run tests
+
+```bash
+uv run python manage.py test
+```
+
+### Shell with Django context
+
+```bash
+uv run python manage.py shell
+```
+
+### Production note
+
+For production deployments, set a strong **`DJANGO_SECRET_KEY`** in the process environment instead of relying on the development default in `config/settings.py`.
+
+### Activating the virtualenv (optional)
+
+`uv run …` already uses the project’s `.venv`. If you prefer an activated shell:
+
+```bash
+source .venv/bin/activate   # Linux / macOS
+python manage.py runserver 0.0.0.0:8000
+```
