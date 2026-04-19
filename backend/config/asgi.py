@@ -1,10 +1,8 @@
 """
-ASGI config for config project.
+ASGI entrypoint (mainly for deployments).
 
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.0/howto/deployment/asgi/
+For local dev we usually just use `runserver`, but keeping ASGI/WGSI around is
+standard Django boilerplate.
 """
 
 import os

@@ -5,7 +5,13 @@ logger = logging.getLogger(__name__)
 
 
 class RequestLoggingMiddleware:
-    """Log each HTTP request with timing, status, and authenticated user id."""
+    """
+    Tiny request logger.
+
+    This is mainly for local debugging so I can see what the frontend is doing
+    without setting up anything fancy (and the timing is useful when something
+    feels slow).
+    """
 
     def __init__(self, get_response):
         self.get_response = get_response

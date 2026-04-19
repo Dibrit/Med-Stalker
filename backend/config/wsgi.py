@@ -1,10 +1,7 @@
 """
-WSGI config for config project.
+WSGI entrypoint (mostly for production servers like gunicorn).
 
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
+Not used much during development, but Django generates it and some hosts expect it.
 """
 
 import os

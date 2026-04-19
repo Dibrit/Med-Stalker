@@ -6,7 +6,7 @@ User = get_user_model()
 
 
 class DoctorProfile(models.Model):
-    """Extended profile for users who act as doctors in the system."""
+    """Extra fields for users that are doctors."""
 
     user = models.OneToOneField(
         User,
@@ -26,7 +26,7 @@ class DoctorProfile(models.Model):
 
 
 class PatientProfile(models.Model):
-    """Extended profile for users who are patients."""
+    """Extra fields for users that are patients."""
 
     user = models.OneToOneField(
         User,
@@ -66,7 +66,7 @@ class DiagnosisManager(models.Manager):
 
 
 class Diagnosis(models.Model):
-    """A diagnosis assigned to a patient and recorded by a doctor."""
+    """A diagnosis entry (doctor -> patient)."""
 
     class Status(models.TextChoices):
         ACTIVE = "active", _("Active")
@@ -114,7 +114,7 @@ class Diagnosis(models.Model):
 
 
 class Prescription(models.Model):
-    """Prescription or recommendation for a patient, optionally tied to a diagnosis."""
+    """Prescription / recommendation (optionally linked to a diagnosis)."""
 
     patient = models.ForeignKey(
         PatientProfile,

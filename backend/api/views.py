@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def auth_login(request):
+    # Using a serializer here keeps auth validation in one place.
     serializer = LoginSerializer(data=request.data, context={"request": request})
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data["user"]
@@ -49,6 +50,8 @@ def auth_logout(request):
         token = RefreshToken(serializer.validated_data["refresh"])
         token.blacklist()
     except TokenError:
+        # If the refresh token is already bad/expired, we just return 400.
+        # (This makes the frontend behavior predictable.)
         logger.warning(
             "Logout failed: invalid refresh token for user_id=%s",
             request.user.pk,
@@ -62,6 +65,7 @@ def auth_logout(request):
 
 
 def _diagnosis_queryset_for_user(user):
+    # Small helper so we don't repeat "doctor sees all / patient sees own" logic.
     qs = Diagnosis.objects.select_related(
         "patient",
         "patient__user",
@@ -86,6 +90,7 @@ class DiagnosisListCreateView(APIView):
     def post(self, request):
         if not getattr(request.user, "doctor_profile", None):
             raise PermissionDenied("Only doctors can create diagnoses.")
+        # `recorded_by` is set inside the serializer based on request.user.
         serializer = DiagnosisSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -179,6 +184,7 @@ class PatientDetailView(generics.RetrieveAPIView):
 
 
 def _prescription_queryset_for_user(user):
+    # Same access pattern as diagnoses.
     related = ("patient", "patient__user", "diagnosis", "prescribed_by", "prescribed_by__user")
     if getattr(user, "doctor_profile", None):
         return Prescription.objects.select_related(*related)

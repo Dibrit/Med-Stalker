@@ -14,6 +14,7 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, style={"input_type": "password"})
 
     def validate(self, attrs):
+        # `authenticate` uses Django's auth backend(s).
         user = authenticate(
             request=self.context.get("request"),
             username=attrs["username"],
@@ -92,6 +93,7 @@ class DiagnosisSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        # We don't trust the client to choose who recorded the diagnosis.
         request = self.context["request"]
         validated_data["recorded_by"] = request.user.doctor_profile
         return super().create(validated_data)
@@ -129,6 +131,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "patient", "prescribed_by_id", "created_at", "updated_at")
 
     def validate(self, attrs):
+        # A couple of cross-field checks that are easier here than in the model.
         diagnosis = attrs.get("diagnosis")
         patient = attrs.get("patient")
         issued_at = attrs.get("issued_at")
@@ -153,6 +156,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        # Same idea as diagnoses: the prescriber is the logged-in doctor.
         request = self.context["request"]
         validated_data["prescribed_by"] = request.user.doctor_profile
         return super().create(validated_data)

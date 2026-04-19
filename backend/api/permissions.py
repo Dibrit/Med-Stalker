@@ -2,6 +2,7 @@ from rest_framework.permissions import BasePermission
 
 
 def _has_doctor_profile(user) -> bool:
+    # "Role" in this project = the user has a related profile row.
     return bool(getattr(user, "doctor_profile", None))
 
 
@@ -27,4 +28,5 @@ class IsDoctorOrPatient(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
+        # Both roles can read their allowed data; write ops are gated in views.
         return _has_doctor_profile(request.user) or _has_patient_profile(request.user)
