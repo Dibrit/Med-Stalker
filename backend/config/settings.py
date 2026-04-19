@@ -8,6 +8,7 @@ things are worth noting:
 """
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -155,6 +156,7 @@ CORS_ALLOWED_ORIGINS = [
 # Logging: verbose console output so it's easier to debug API calls during dev.
 _LOG_LEVEL = os.environ.get("DJANGO_LOG_LEVEL", "DEBUG" if DEBUG else "INFO")
 _API_LOG_LEVEL = os.environ.get("API_LOG_LEVEL", "DEBUG" if DEBUG else "INFO")
+_COLOR_LOGS = _env_flag("DJANGO_COLOR_LOGS", DEBUG) and sys.stderr.isatty()
 
 LOGGING = {
     "version": 1,
@@ -164,11 +166,17 @@ LOGGING = {
             "format": "{levelname} {asctime} {name} {message}",
             "style": "{",
         },
+        "color_verbose": {
+            "()": "config.logging.ColorFormatter",
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+            "use_colors": True,
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "color_verbose" if _COLOR_LOGS else "verbose",
         },
     },
     "root": {
