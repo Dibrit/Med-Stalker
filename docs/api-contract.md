@@ -13,15 +13,18 @@ Content-Type: application/json
 Authorization: Bearer <access_token>
 ```
 
-Authorization header is required for protected endpoints.
+Authorization header is required for all endpoints except login and token refresh.
 
 ---
 
-## Roles
+## Access Model
 
-- `doctor`
-- `patient`
-- `admin`
+This backend does **not** expose a `role` field in the API. Access is determined by whether the authenticated `User` has:
+
+- a `doctor_profile` (doctor access)
+- a `patient_profile` (patient access)
+
+`admin` access is only relevant for Django admin (`/admin/`), not the REST API.
 
 ---
 
@@ -39,26 +42,19 @@ Authorization header is required for protected endpoints.
 
 ## Data Shapes
 
-### User
-```json
-{
-  "id": 1,
-  "username": "doctor",
-  "first_name": "Alice",
-  "last_name": "Smith",
-  "role": "doctor"
-}
-```
-
-### PatientProfile
+### Patient
 ```json
 {
   "id": 3,
-  "user": 7,
+  "username": "patient1",
+  "email": "patient1@example.com",
+  "first_name": "Pat",
+  "last_name": "Ient",
   "date_of_birth": "2000-05-12",
   "phone": "+77001234567",
-  "address": "Almaty, Kazakhstan",
-  "blood_type": "A+"
+  "medical_record_number": "MRN-000123",
+  "created_at": "2026-04-16T10:30:00Z",
+  "updated_at": "2026-04-16T10:30:00Z"
 }
 ```
 
@@ -66,13 +62,26 @@ Authorization header is required for protected endpoints.
 ```json
 {
   "id": 8,
-  "patient": 3,
-  "doctor": 1,
-  "doctor_name": "Alice Smith",
-  "disease_name": "Hypertension",
+  "patient": {
+    "id": 3,
+    "username": "patient1",
+    "email": "patient1@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
+    "date_of_birth": "2000-05-12",
+    "phone": "+77001234567",
+    "medical_record_number": "MRN-000123",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "recorded_by_id": 1,
+  "title": "Hypertension",
   "description": "Persistent elevated blood pressure",
-  "status": "confirmed",
-  "diagnosed_at": "2026-04-15"
+  "icd_code": "I10",
+  "status": "active",
+  "diagnosed_at": "2026-04-15T09:00:00Z",
+  "created_at": "2026-04-16T10:30:00Z",
+  "updated_at": "2026-04-16T10:30:00Z"
 }
 ```
 
@@ -80,27 +89,26 @@ Authorization header is required for protected endpoints.
 ```json
 {
   "id": 5,
-  "patient": 3,
-  "doctor": 1,
+  "patient": {
+    "id": 3,
+    "username": "patient1",
+    "email": "patient1@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
+    "date_of_birth": "2000-05-12",
+    "phone": "+77001234567",
+    "medical_record_number": "MRN-000123",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "prescribed_by_id": 1,
   "diagnosis": 8,
   "medication_name": "Lisinopril",
-  "dosage": "10 mg",
-  "frequency": "Once daily",
-  "instructions": "Take in the morning",
-  "start_date": "2026-04-16",
-  "end_date": "2026-05-16"
-}
-```
-
-### Recommendation
-```json
-{
-  "id": 4,
-  "patient": 3,
-  "doctor": 1,
-  "title": "Lifestyle Advice",
-  "content": "Reduce salt intake and exercise daily",
-  "created_at": "2026-04-16T10:30:00Z"
+  "instructions": "10 mg once daily, mornings",
+  "issued_at": "2026-04-16T10:30:00Z",
+  "valid_until": "2026-05-16",
+  "created_at": "2026-04-16T10:30:00Z",
+  "updated_at": "2026-04-16T10:30:00Z"
 }
 ```
 
@@ -121,18 +129,13 @@ Response:
 ```json
 {
   "access": "jwt_access_token",
-  "refresh": "jwt_refresh_token",
-  "user": {
-    "id": 1,
-    "username": "doctor",
-    "first_name": "Alice",
-    "last_name": "Smith",
-    "role": "doctor"
-  }
+  "refresh": "jwt_refresh_token"
 }
 ```
 
 ### `POST /auth/logout/`
+Requires authentication.
+
 Request:
 ```json
 {
@@ -143,19 +146,24 @@ Request:
 Response:
 ```json
 {
-  "detail": "Logged out successfully"
+  "detail": "Successfully logged out."
 }
 ```
 
-### `GET /auth/me/`
+### `POST /auth/refresh/`
+Purpose: exchange a refresh token for a new access token.
+
+Request:
+```json
+{
+  "refresh": "jwt_refresh_token"
+}
+```
+
 Response:
 ```json
 {
-  "id": 1,
-  "username": "doctor",
-  "first_name": "Alice",
-  "last_name": "Smith",
-  "role": "doctor"
+  "access": "new_jwt_access_token"
 }
 ```
 
@@ -165,38 +173,32 @@ Response:
 
 ### `GET /patients/`
 Purpose: list patients  
-Access: doctor
+Access:
+
+- doctor: sees **all** patients
+- patient: sees **self** only
 
 Response:
 ```json
 [
   {
     "id": 3,
-    "user": 7,
+    "username": "patient1",
+    "email": "patient1@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
     "date_of_birth": "2000-05-12",
     "phone": "+77001234567",
-    "address": "Almaty, Kazakhstan",
-    "blood_type": "A+"
+    "medical_record_number": "MRN-000123",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
   }
 ]
 ```
 
 ### `GET /patients/{id}/`
 Purpose: patient detail  
-Access: doctor, or patient if self
-
-### `PUT /patients/{id}/`
-### `PATCH /patients/{id}/`
-Purpose: update patient profile  
-Access: patient if self, optional for doctor
-
-Request:
-```json
-{
-  "phone": "+77005556677",
-  "address": "Updated address"
-}
-```
+Access: doctor (any patient) or patient (self only)
 
 ---
 
@@ -204,12 +206,7 @@ Request:
 
 ### `GET /diagnoses/`
 Purpose: list diagnoses  
-Access: doctor or patient (own only)
-
-Optional query:
-```http
-GET /diagnoses/?patient=3
-```
+Access: doctor (all) or patient (own only)
 
 ### `POST /diagnoses/`
 Purpose: create diagnosis  
@@ -218,11 +215,12 @@ Access: doctor only
 Request:
 ```json
 {
-  "patient": 3,
-  "disease_name": "Hypertension",
+  "patient_id": 3,
+  "title": "Hypertension",
   "description": "Persistent elevated blood pressure",
-  "status": "confirmed",
-  "diagnosed_at": "2026-04-15"
+  "icd_code": "I10",
+  "status": "active",
+  "diagnosed_at": "2026-04-15T09:00:00Z"
 }
 ```
 
@@ -230,13 +228,26 @@ Response:
 ```json
 {
   "id": 8,
-  "patient": 3,
-  "doctor": 1,
-  "doctor_name": "Alice Smith",
-  "disease_name": "Hypertension",
+  "patient": {
+    "id": 3,
+    "username": "patient1",
+    "email": "patient1@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
+    "date_of_birth": "2000-05-12",
+    "phone": "+77001234567",
+    "medical_record_number": "MRN-000123",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "recorded_by_id": 1,
+  "title": "Hypertension",
   "description": "Persistent elevated blood pressure",
-  "status": "confirmed",
-  "diagnosed_at": "2026-04-15"
+  "icd_code": "I10",
+  "status": "active",
+  "diagnosed_at": "2026-04-15T09:00:00Z",
+  "created_at": "2026-04-16T10:30:00Z",
+  "updated_at": "2026-04-16T10:30:00Z"
 }
 ```
 
@@ -264,7 +275,10 @@ Response:
 204 No Content
 ```
 
-> Backend must set `doctor = request.user` on create.
+Notes:
+
+- `recorded_by_id` is set by the backend from the logged-in doctor's profile.
+- `diagnosed_at` cannot be in the future.
 
 ---
 
@@ -273,10 +287,7 @@ Response:
 ### `GET /prescriptions/`
 Purpose: list prescriptions
 
-Optional query:
-```http
-GET /prescriptions/?patient=3
-```
+Access: doctor (all) or patient (own only)
 
 ### `POST /prescriptions/`
 Purpose: create prescription  
@@ -285,14 +296,12 @@ Access: doctor only
 Request:
 ```json
 {
-  "patient": 3,
+  "patient_id": 3,
   "diagnosis": 8,
   "medication_name": "Lisinopril",
-  "dosage": "10 mg",
-  "frequency": "Once daily",
-  "instructions": "Take in the morning",
-  "start_date": "2026-04-16",
-  "end_date": "2026-05-16"
+  "instructions": "10 mg once daily, mornings",
+  "issued_at": "2026-04-16T10:30:00Z",
+  "valid_until": "2026-05-16"
 }
 ```
 
@@ -300,15 +309,26 @@ Response:
 ```json
 {
   "id": 5,
-  "patient": 3,
-  "doctor": 1,
+  "patient": {
+    "id": 3,
+    "username": "patient1",
+    "email": "patient1@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
+    "date_of_birth": "2000-05-12",
+    "phone": "+77001234567",
+    "medical_record_number": "MRN-000123",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "prescribed_by_id": 1,
   "diagnosis": 8,
   "medication_name": "Lisinopril",
-  "dosage": "10 mg",
-  "frequency": "Once daily",
-  "instructions": "Take in the morning",
-  "start_date": "2026-04-16",
-  "end_date": "2026-05-16"
+  "instructions": "10 mg once daily, mornings",
+  "issued_at": "2026-04-16T10:30:00Z",
+  "valid_until": "2026-05-16",
+  "created_at": "2026-04-16T10:30:00Z",
+  "updated_at": "2026-04-16T10:30:00Z"
 }
 ```
 
@@ -329,63 +349,22 @@ Response:
 204 No Content
 ```
 
-> Backend must set `doctor = request.user` on create.
+Notes:
 
----
-
-## Recommendation Endpoints
-
-### `GET /recommendations/`
-Purpose: list recommendations
-
-Optional query:
-```http
-GET /recommendations/?patient=3
-```
-
-### `POST /recommendations/`
-Purpose: create recommendation  
-Access: doctor only
-
-Request:
-```json
-{
-  "patient": 3,
-  "title": "Lifestyle Advice",
-  "content": "Reduce salt intake and exercise daily"
-}
-```
-
-Response:
-```json
-{
-  "id": 4,
-  "patient": 3,
-  "doctor": 1,
-  "title": "Lifestyle Advice",
-  "content": "Reduce salt intake and exercise daily",
-  "created_at": "2026-04-16T10:30:00Z"
-}
-```
-
-### `GET /recommendations/{id}/`
-Purpose: recommendation detail
-
-### `DELETE /recommendations/{id}/`
-Purpose: delete recommendation  
-Access: doctor only
+- `prescribed_by_id` is set by the backend from the logged-in doctor's profile.
+- `diagnosis` is optional and may be `null`.
 
 ---
 
 ## Frontend Mapping
 
-- `LoginComponent` → `POST /auth/login/`
-- `NavbarComponent` → `POST /auth/logout/`, `GET /auth/me/`
+- `LoginComponent` → `POST /auth/login/`, `POST /auth/refresh/`
+- `NavbarComponent` → `POST /auth/logout/`
 - `PatientListComponent` → `GET /patients/`
 - `PatientDetailComponent` → `GET /patients/{id}/`
-- `DiagnosisListComponent` → `GET /diagnoses/?patient={id}`
+- `DiagnosisListComponent` → `GET /diagnoses/`
 - `DiagnosisFormComponent` → `POST /diagnoses/`, `PATCH /diagnoses/{id}/`
-- `PrescriptionListComponent` → `GET /prescriptions/?patient={id}`
+- `PrescriptionListComponent` → `GET /prescriptions/`
 - `PrescriptionFormComponent` → `POST /prescriptions/`, `PATCH /prescriptions/{id}/`
 
 ---
@@ -395,9 +374,7 @@ Access: doctor only
 ### Validation error
 ```json
 {
-  "disease_name": [
-    "This field is required."
-  ]
+  "title": ["This field is required."]
 }
 ```
 

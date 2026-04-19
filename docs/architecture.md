@@ -31,56 +31,56 @@ Angular Frontend  <----HTTP / JSON---->  Django REST API  <---->  SQLite
 
 ### Backend
 - authentication with JWT
-- role-based permissions
+- profile-based permissions (doctor vs patient)
 - request validation
 - CRUD for medical records
-- linking created records to `request.user`
+- linking created records to the authenticated user's profile
 - returning JSON responses
 
 ---
 
-## User Roles
+## Access Model
 
-### Doctor
-- view patients
+The API determines access via *profile models* attached to Django `User`:
+
+- **Doctor access**: `request.user.doctor_profile` exists
+- **Patient access**: `request.user.patient_profile` exists
+
+There is no `role` field returned by the API. “Admin” is only relevant to Django admin (`/admin/`).
+
+### Doctor capabilities (REST API)
+- view all patients
 - create/update/delete diagnoses
 - create/update/delete prescriptions
-- create recommendations
 
-### Patient
-- view only own profile and own medical records
-
-### Admin
-- manage users and data through Django admin
+### Patient capabilities (REST API)
+- view self patient profile only
+- view own diagnoses only
+- view own prescriptions only
 
 ---
 
 ## Main Backend Apps
 
-- `accounts` — user model and authentication
-- `patients` — patient profiles
-- `medical` — diagnoses, prescriptions, recommendations
-- `core` — shared permissions and utilities
+The backend is intentionally kept small: a single Django app called `api` contains models, serializers, views, permissions, and URL routing.
 
 ---
 
 ## Main Models
 
-- `User`
-- `PatientProfile`
-- `Diagnosis`
-- `Prescription`
-- `Recommendation`
+- `DoctorProfile` (1:1 with `User`)
+- `PatientProfile` (1:1 with `User`)
+- `Diagnosis` (doctor -> patient)
+- `Prescription` (doctor -> patient, optionally linked to a `Diagnosis`)
 
 ### Main Relationships
+- `DoctorProfile.user -> OneToOne(User)`
 - `PatientProfile.user -> OneToOne(User)`
 - `Diagnosis.patient -> ForeignKey(PatientProfile)`
-- `Diagnosis.doctor -> ForeignKey(User)`
+- `Diagnosis.recorded_by -> ForeignKey(DoctorProfile)`
 - `Prescription.patient -> ForeignKey(PatientProfile)`
-- `Prescription.doctor -> ForeignKey(User)`
-- `Prescription.diagnosis -> ForeignKey(Diagnosis)`
-- `Recommendation.patient -> ForeignKey(PatientProfile)`
-- `Recommendation.doctor -> ForeignKey(User)`
+- `Prescription.prescribed_by -> ForeignKey(DoctorProfile)`
+- `Prescription.diagnosis -> ForeignKey(Diagnosis, nullable)`
 
 ---
 
@@ -91,7 +91,7 @@ JWT authentication is used.
 Main endpoints:
 - `POST /api/auth/login/`
 - `POST /api/auth/logout/`
-- `GET /api/auth/me/`
+- `POST /api/auth/refresh/`
 
 Frontend stores the access token and sends it in:
 ```http
@@ -138,5 +138,5 @@ CORS must allow:
 - separate frontend and backend services
 - single monorepo for submission convenience
 - JWT auth for SPA-friendly authentication
-- custom user model with role field
+- “roles” implemented via `DoctorProfile` / `PatientProfile` relationships
 - SQLite for development/demo
