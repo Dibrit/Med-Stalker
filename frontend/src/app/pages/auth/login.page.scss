@@ -1,0 +1,64 @@
+.auth__hd {
+  margin-bottom: var(--s-4);
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.sub {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+  margin: var(--s-4) 0;
+}
+
+.tab {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-1);
+  background: var(--surface);
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.tab.is-active {
+  border-color: rgba(15, 118, 110, 0.45);
+  box-shadow: 0 0 0 3px var(--focus);
+  color: var(--text);
+}
+
+.grid {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.actions {
+  margin-top: var(--s-4);
+  display: flex;
+  gap: var(--s-3);
+}
+
+@media (max-width: 640px) {
+  .grid--2 {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+

@@ -1,0 +1,44 @@
+<section class="page">
+  <div class="page__hd">
+    <h1>Patients</h1>
+    <div class="tools">
+      <input class="input" placeholder="Search by name, username, email, MRN…" [(ngModel)]="query" />
+    </div>
+  </div>
+
+  <div class="alert alert--error" *ngIf="error">{{ error }}</div>
+
+  <div class="panel" *ngIf="loading">
+    <div class="panel__bd">Loading patients…</div>
+  </div>
+
+  <div class="panel" *ngIf="!loading && !error && filtered().length === 0">
+    <div class="panel__bd">No patients found.</div>
+  </div>
+
+  <div class="panel" *ngIf="!loading && !error && filtered().length > 0">
+    <div class="panel__bd" style="padding: 0">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>MRN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-hover" *ngFor="let p of filtered()">
+            <td>
+              <a [routerLink]="['/patients', p.id]">{{ p.last_name }}, {{ p.first_name }}</a>
+            </td>
+            <td>{{ p.username }}</td>
+            <td>{{ p.email }}</td>
+            <td>{{ p.medical_record_number }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+

@@ -190,8 +190,9 @@ The design can stay simple, but it should not look unfinished.
 ---
 
 ## Requirements
-- Node.js
-- Angular CLI
+- Node.js LTS
+- npm
+- GNU Make (recommended, optional)
 
 ---
 
