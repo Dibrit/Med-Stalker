@@ -6,6 +6,7 @@ The backend must provide a REST API for the frontend and store all medical data.
 The system should support:
 
 - doctor and patient users
+- patient self-registration
 - login and logout with JWT
 - patient data access
 - diagnosis management
@@ -36,11 +37,14 @@ Requirements:
 Implement **JWT-based authentication**.
 
 Required endpoints:
+- `POST /api/auth/register/`
 - `POST /api/auth/login/`
 - `POST /api/auth/logout/`
 - `POST /api/auth/refresh/`
 
 Behavior:
+- registration creates a regular Django `User` plus a `PatientProfile`
+- only patients can self-register; doctors are created manually through Django admin
 - login returns access and refresh tokens
 - logout invalidates the refresh token
 - protected endpoints require JWT in the `Authorization` header

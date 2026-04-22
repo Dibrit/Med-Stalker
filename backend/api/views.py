@@ -17,6 +17,7 @@ from .serializers import (
     LoginSerializer,
     LogoutSerializer,
     PatientSerializer,
+    PatientRegistrationSerializer,
     PrescriptionSerializer,
 )
 
@@ -62,6 +63,28 @@ def auth_logout(request):
         )
     logger.info("Logout succeeded for user_id=%s", request.user.pk)
     return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def auth_register(request):
+    serializer = PatientRegistrationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    patient = serializer.save()
+    refresh = RefreshToken.for_user(patient.user)
+    logger.info(
+        "Patient registration succeeded user_id=%s patient_id=%s",
+        patient.user_id,
+        patient.pk,
+    )
+    return Response(
+        {
+            "patient": PatientSerializer(patient).data,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        },
+        status=status.HTTP_201_CREATED,
+    )
 
 
 def _diagnosis_queryset_for_user(user):

@@ -5,6 +5,7 @@ from . import views
 
 urlpatterns = [
     # Auth endpoints (JWT).
+    path("auth/register/", views.auth_register),
     path("auth/login/", views.auth_login),
     path("auth/logout/", views.auth_logout),
     path("auth/refresh/", TokenRefreshView.as_view()),

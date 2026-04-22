@@ -25,9 +25,49 @@ These are explicitly required by `backend/README.md`.
 
 | Method | Path | Auth Required | Purpose |
 |---|---|---|---|
+| POST | `/api/auth/register/` | No | Create a patient account and return tokens |
 | POST | `/api/auth/login/` | No | Authenticate user and return tokens |
 | POST | `/api/auth/logout/` | Yes | Invalidate refresh token (logout) |
 | POST | `/api/auth/refresh/` | No (refresh token in body) | Issue a new access token |
+
+### `POST /api/auth/register/`
+
+- Description: Patient self-registration only. Doctors are created via Django admin.
+- Request body (example):
+
+```json
+{
+  "username": "patient2",
+  "email": "patient2@example.com",
+  "first_name": "Pat",
+  "last_name": "Ient",
+  "password": "strong-password-123",
+  "password_confirm": "strong-password-123",
+  "date_of_birth": "2000-05-12",
+  "phone": "+77001234567"
+}
+```
+
+- Success response (example):
+
+```json
+{
+  "patient": {
+    "id": 3,
+    "username": "patient2",
+    "email": "patient2@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
+    "date_of_birth": "2000-05-12",
+    "phone": "+77001234567",
+    "medical_record_number": "MRN-AB12CD34",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "access": "<jwt_access_token>",
+  "refresh": "<jwt_refresh_token>"
+}
+```
 
 ### `POST /api/auth/login/`
 

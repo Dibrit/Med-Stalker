@@ -48,6 +48,7 @@ A doctor can:
 
 ### Patient
 A patient can:
+- register for an account
 - log in to the system
 - view their own diagnoses
 - view their own prescriptions and recommendations
@@ -56,7 +57,7 @@ A patient can:
 
 ## Core Features
 
-- JWT-based login and logout
+- JWT-based patient registration, login, and logout
 - patient list and detail view
 - diagnosis management
 - prescription/recommendation management

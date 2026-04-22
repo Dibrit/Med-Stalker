@@ -54,6 +54,7 @@ There is no `role` field returned by the API. “Admin” is only relevant to Dj
 - create/update/delete prescriptions
 
 ### Patient capabilities (REST API)
+- register for a patient account
 - view self patient profile only
 - view own diagnoses only
 - view own prescriptions only
@@ -89,6 +90,7 @@ The backend is intentionally kept small: a single Django app called `api` contai
 JWT authentication is used.
 
 Main endpoints:
+- `POST /api/auth/register/`
 - `POST /api/auth/login/`
 - `POST /api/auth/logout/`
 - `POST /api/auth/refresh/`

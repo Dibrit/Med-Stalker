@@ -1,12 +1,23 @@
 import logging
+from secrets import token_hex
 
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model, password_validation
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Diagnosis, PatientProfile, Prescription
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
+
+
+def _generate_medical_record_number() -> str:
+    while True:
+        candidate = f"MRN-{token_hex(4).upper()}"
+        if not PatientProfile.objects.filter(medical_record_number=candidate).exists():
+            return candidate
 
 
 class LoginSerializer(serializers.Serializer):
@@ -36,6 +47,78 @@ class LoginSerializer(serializers.Serializer):
 
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField(write_only=True)
+
+
+class PatientRegistrationSerializer(serializers.Serializer):
+    username = serializers.CharField(write_only=True, max_length=150)
+    email = serializers.EmailField(write_only=True)
+    first_name = serializers.CharField(write_only=True, max_length=150)
+    last_name = serializers.CharField(write_only=True, max_length=150)
+    password = serializers.CharField(
+        write_only=True,
+        style={"input_type": "password"},
+        trim_whitespace=False,
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        style={"input_type": "password"},
+        trim_whitespace=False,
+    )
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    phone = serializers.CharField(required=False, allow_blank=True, max_length=32)
+
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("A user with that username already exists.")
+        return value
+
+    def validate_email(self, value):
+        normalized = User.objects.normalize_email(value)
+        if User.objects.filter(email__iexact=normalized).exists():
+            raise serializers.ValidationError("A user with that email already exists.")
+        return normalized
+
+    def validate_date_of_birth(self, value):
+        if value and value > timezone.localdate():
+            raise serializers.ValidationError("Date of birth cannot be in the future.")
+        return value
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+
+        user = User(
+            username=attrs["username"],
+            email=attrs["email"],
+            first_name=attrs["first_name"],
+            last_name=attrs["last_name"],
+        )
+        try:
+            password_validation.validate_password(attrs["password"], user=user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"password": list(exc.messages)}) from exc
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        validated_data.pop("password_confirm")
+        phone = validated_data.pop("phone", "")
+        date_of_birth = validated_data.pop("date_of_birth", None)
+
+        user = User.objects.create_user(
+            username=validated_data["username"],
+            email=validated_data["email"],
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
+            password=password,
+        )
+        return PatientProfile.objects.create(
+            user=user,
+            phone=phone,
+            date_of_birth=date_of_birth,
+            medical_record_number=_generate_medical_record_number(),
+        )
 
 
 class PatientSerializer(serializers.ModelSerializer):

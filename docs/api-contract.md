@@ -13,7 +13,7 @@ Content-Type: application/json
 Authorization: Bearer <access_token>
 ```
 
-Authorization header is required for all endpoints except login and token refresh.
+Authorization header is required for all endpoints except registration, login, and token refresh.
 
 ---
 
@@ -115,6 +115,44 @@ This backend does **not** expose a `role` field in the API. Access is determined
 ---
 
 ## Authentication Endpoints
+
+### `POST /auth/register/`
+Creates a patient account. This endpoint creates a `User` plus `PatientProfile`.
+Doctors are not self-registered through the API and should be added via Django admin.
+
+Request:
+```json
+{
+  "username": "patient2",
+  "email": "patient2@example.com",
+  "first_name": "Pat",
+  "last_name": "Ient",
+  "password": "strong-password-123",
+  "password_confirm": "strong-password-123",
+  "date_of_birth": "2000-05-12",
+  "phone": "+77001234567"
+}
+```
+
+Response:
+```json
+{
+  "patient": {
+    "id": 3,
+    "username": "patient2",
+    "email": "patient2@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
+    "date_of_birth": "2000-05-12",
+    "phone": "+77001234567",
+    "medical_record_number": "MRN-AB12CD34",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "access": "jwt_access_token",
+  "refresh": "jwt_refresh_token"
+}
+```
 
 ### `POST /auth/login/`
 Request:
