@@ -32,18 +32,21 @@ class PrescriptionListCreateTests(APITestCase):
         return {"HTTP_AUTHORIZATION": f"Bearer {str(token.access_token)}"}
 
     def test_doctor_lists_all_prescriptions(self):
+        """Doctors can list every prescription in the system."""
         response = self.client.get("/api/prescriptions/", **self._auth(self.doctor))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = {row["medication_name"] for row in response.data}
         self.assertSetEqual(names, {"Med A", "Med B"})
 
     def test_patient_lists_only_own_prescriptions(self):
+        """Patients only see prescriptions assigned to them."""
         response = self.client.get("/api/prescriptions/", **self._auth(self.patient))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["medication_name"], "Med A")
 
     def test_patient_cannot_create_prescription(self):
+        """Patients cannot create prescriptions through the API."""
         payload = {
             "patient_id": self.patient.patient_profile.pk,
             "diagnosis": self.diagnosis.pk,
@@ -60,6 +63,7 @@ class PrescriptionListCreateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_doctor_can_create_prescription(self):
+        """Doctors can create prescriptions and are recorded as the prescriber."""
         payload = {
             "patient_id": self.patient.patient_profile.pk,
             "diagnosis": self.diagnosis.pk,
@@ -77,6 +81,7 @@ class PrescriptionListCreateTests(APITestCase):
         self.assertEqual(response.data["prescribed_by_id"], self.doctor.doctor_profile.pk)
 
     def test_create_rejects_diagnosis_for_different_patient(self):
+        """Prescription creation fails if the diagnosis belongs to another patient."""
         other_dx = create_diagnosis(
             patient=self.other_patient.patient_profile,
             doctor=self.doctor.doctor_profile,
@@ -97,6 +102,7 @@ class PrescriptionListCreateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_rejects_valid_until_before_issued_at(self):
+        """Prescription creation fails when valid_until is earlier than issued_at."""
         payload = {
             "patient_id": self.patient.patient_profile.pk,
             "diagnosis": self.diagnosis.pk,
@@ -130,11 +136,13 @@ class PrescriptionDetailTests(APITestCase):
         return {"HTTP_AUTHORIZATION": f"Bearer {str(token.access_token)}"}
 
     def test_patient_can_retrieve_own_prescription(self):
+        """Patients can retrieve their own prescription details."""
         url = f"/api/prescriptions/{self.prescription.pk}/"
         response = self.client.get(url, **self._auth(self.patient))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_patient_cannot_update_prescription(self):
+        """Patients cannot update prescription records."""
         url = f"/api/prescriptions/{self.prescription.pk}/"
         response = self.client.patch(
             url,
@@ -145,6 +153,7 @@ class PrescriptionDetailTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_doctor_can_update_prescription(self):
+        """Doctors can partially update prescription records."""
         url = f"/api/prescriptions/{self.prescription.pk}/"
         response = self.client.patch(
             url,

@@ -138,7 +138,7 @@ Common targets:
 make sync          # install/update dependencies into .venv (uses uv.lock)
 make migrate       # apply migrations
 make run           # start API on 0.0.0.0:8000
-make test          # run tests
+make test          # run tests with per-test pass/fail output
 ```
 
 If you don’t have `make` installed, you can run the equivalent `uv …` commands shown below.
@@ -201,8 +201,10 @@ uv run python manage.py migrate         # or: make migrate
 ### Run tests
 
 ```bash
-uv run python manage.py test   # or: make test
+uv run python manage.py test -v 2   # or: make test
 ```
+
+`-v 2` tells Django to print each test name/description so you can see which tests passed before any failure stops the run.
 
 ### Seed realistic demo data (local dev)
 

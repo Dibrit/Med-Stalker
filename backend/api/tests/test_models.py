@@ -22,5 +22,6 @@ class DiagnosisManagerTests(TestCase):
         )
 
     def test_active_manager_filters_non_active(self):
+        """Diagnosis manager.active() returns only diagnoses with active status."""
         qs = Diagnosis.objects.active()
         self.assertEqual(list(qs.order_by("pk")), [self.active])

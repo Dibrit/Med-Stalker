@@ -19,8 +19,8 @@ makemigrations: ## Create migrations (when models change)
 run: ## Start dev server on 0.0.0.0:8000
 	uv run python manage.py runserver 0.0.0.0:8000
 
-test: ## Run tests
-	uv run python manage.py test
+test: ## Run tests with verbose per-test output
+	uv run python manage.py test -v 2
 
 shell: ## Django shell
 	uv run python manage.py shell

@@ -12,6 +12,7 @@ User = get_user_model()
 
 class AuthRegisterTests(APITestCase):
     def test_register_creates_patient_profile_and_returns_tokens(self):
+        """Patient registration creates a patient profile and returns JWT tokens."""
         payload = {
             "username": "new_patient",
             "email": "new_patient@example.com",
@@ -39,6 +40,7 @@ class AuthRegisterTests(APITestCase):
         self.assertEqual(PatientProfile.objects.count(), 1)
 
     def test_register_rejects_duplicate_username(self):
+        """Registration fails when the requested username already exists."""
         User.objects.create_user(username="taken", email="existing@example.com", password="secret123")
 
         response = self.client.post(
@@ -58,6 +60,7 @@ class AuthRegisterTests(APITestCase):
         self.assertIn("username", response.data)
 
     def test_register_rejects_password_mismatch(self):
+        """Registration fails when password confirmation does not match."""
         response = self.client.post(
             "/api/auth/register/",
             {
@@ -75,6 +78,7 @@ class AuthRegisterTests(APITestCase):
         self.assertIn("password_confirm", response.data)
 
     def test_register_rejects_future_date_of_birth(self):
+        """Registration fails when date of birth is set in the future."""
         response = self.client.post(
             "/api/auth/register/",
             {
@@ -98,6 +102,7 @@ class AuthLoginTests(APITestCase):
         self.user = create_doctor_user(username="login_doc", password="good-password")
 
     def test_login_returns_tokens(self):
+        """Login returns access and refresh tokens for valid credentials."""
         response = self.client.post(
             "/api/auth/login/",
             {"username": "login_doc", "password": "good-password"},
@@ -108,6 +113,7 @@ class AuthLoginTests(APITestCase):
         self.assertIn("refresh", response.data)
 
     def test_login_rejects_invalid_password(self):
+        """Login fails when the password is incorrect."""
         response = self.client.post(
             "/api/auth/login/",
             {"username": "login_doc", "password": "wrong"},
@@ -121,6 +127,7 @@ class AuthRefreshTests(APITestCase):
         self.user = create_doctor_user(username="refresh_doc", password="pw")
 
     def test_refresh_returns_new_access(self):
+        """Refresh endpoint exchanges a refresh token for a new access token."""
         refresh = RefreshToken.for_user(self.user)
         response = self.client.post(
             "/api/auth/refresh/",
@@ -136,6 +143,7 @@ class AuthLogoutTests(APITestCase):
         self.user = create_doctor_user(username="logout_doc", password="pw")
 
     def test_logout_blacklists_refresh_token(self):
+        """Logout blacklists the submitted refresh token."""
         refresh = RefreshToken.for_user(self.user)
         access = str(refresh.access_token)
         response = self.client.post(
@@ -154,6 +162,7 @@ class AuthLogoutTests(APITestCase):
         self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_logout_requires_authentication(self):
+        """Logout is rejected when no access token is provided."""
         refresh = RefreshToken.for_user(self.user)
         response = self.client.post(
             "/api/auth/logout/",
@@ -163,6 +172,7 @@ class AuthLogoutTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_logout_rejects_invalid_refresh(self):
+        """Logout fails when the submitted refresh token is invalid."""
         refresh = RefreshToken.for_user(self.user)
         access = str(refresh.access_token)
         response = self.client.post(
@@ -176,6 +186,7 @@ class AuthLogoutTests(APITestCase):
 
 class RoleGateTests(APITestCase):
     def test_user_without_profile_cannot_access_patients(self):
+        """Users without a doctor or patient profile cannot open patient endpoints."""
         user = User.objects.create_user(username="plain", password="pw")
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
