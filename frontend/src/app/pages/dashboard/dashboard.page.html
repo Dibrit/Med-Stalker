@@ -1,0 +1,52 @@
+<section class="page">
+  <div class="page__hd">
+    <h1>Dashboard</h1>
+    <p class="sub" *ngIf="(session.state$ | async) as s">
+      <ng-container *ngIf="s.mode === 'doctor'">You can manage patients, diagnoses, and prescriptions.</ng-container>
+      <ng-container *ngIf="s.mode === 'patient'">You can view your profile, diagnoses, and prescriptions.</ng-container>
+      <ng-container *ngIf="s.mode === 'unknown'">Signed in. Loading your access mode…</ng-container>
+    </p>
+  </div>
+
+  <div class="alert alert--error" *ngIf="error">{{ error }}</div>
+
+  <div class="panel" *ngIf="loading">
+    <div class="panel__bd">Loading…</div>
+  </div>
+
+  <div class="grid" *ngIf="!loading && !error && (session.state$ | async) as s">
+    <div class="panel">
+      <div class="panel__hd">
+        <div class="k">Patients</div>
+        <div class="v">{{ counts.patients }}</div>
+      </div>
+      <div class="panel__bd">
+        <a class="btn btn--link" routerLink="/patients" *ngIf="s.mode === 'doctor'">View patients</a>
+        <a class="btn btn--link" routerLink="/my-records" *ngIf="s.mode !== 'doctor'">View my profile</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd">
+        <div class="k">Diagnoses</div>
+        <div class="v">{{ counts.diagnoses }}</div>
+      </div>
+      <div class="panel__bd">
+        <a class="btn btn--link" routerLink="/patients" *ngIf="s.mode === 'doctor'">Manage via patient pages</a>
+        <a class="btn btn--link" routerLink="/my-records" *ngIf="s.mode !== 'doctor'">See my diagnoses</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd">
+        <div class="k">Prescriptions</div>
+        <div class="v">{{ counts.prescriptions }}</div>
+      </div>
+      <div class="panel__bd">
+        <a class="btn btn--link" routerLink="/patients" *ngIf="s.mode === 'doctor'">Manage via patient pages</a>
+        <a class="btn btn--link" routerLink="/my-records" *ngIf="s.mode !== 'doctor'">See my prescriptions</a>
+      </div>
+    </div>
+  </div>
+</section>
+

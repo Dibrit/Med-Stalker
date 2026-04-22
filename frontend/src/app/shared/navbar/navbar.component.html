@@ -1,0 +1,30 @@
+<header class="nav">
+  <div class="nav__inner">
+    <a class="brand" routerLink="/dashboard" aria-label="Med-Stalker home">
+      <span class="brand__name">Med-Stalker</span>
+      <span class="brand__sub">Medical records</span>
+    </a>
+
+    <nav class="links" *ngIf="(session.state$ | async) as s">
+      <a routerLink="/dashboard" routerLinkActive="is-active">Dashboard</a>
+
+      <ng-container *ngIf="s.mode === 'doctor'">
+        <a routerLink="/patients" routerLinkActive="is-active">Patients</a>
+      </ng-container>
+
+      <ng-container *ngIf="s.mode !== 'doctor'">
+        <a routerLink="/my-records" routerLinkActive="is-active">My records</a>
+      </ng-container>
+    </nav>
+
+    <div class="right">
+      <div class="mode" *ngIf="(session.state$ | async) as s">
+        <span *ngIf="s.mode === 'doctor'">Doctor</span>
+        <span *ngIf="s.mode === 'patient'">Patient</span>
+        <span *ngIf="s.mode === 'unknown'">Signed in</span>
+      </div>
+      <button class="btn btn--secondary" type="button" (click)="logout()">Logout</button>
+    </div>
+  </div>
+</header>
+

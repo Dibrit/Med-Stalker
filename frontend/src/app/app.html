@@ -1,12 +1,8 @@
-<main class="app-shell">
-  <section class="placeholder">
-    <p class="eyebrow">Med-Stalker</p>
-    <h1>Angular frontend scaffold</h1>
-    <p>
-      The workspace is ready. Start building pages, services, and routes in
-      <code>src/app</code>.
-    </p>
-  </section>
+<div class="app">
+  <app-toast-stack />
+  <app-navbar *ngIf="showShell()" />
 
-  <router-outlet></router-outlet>
-</main>
+  <main class="content" [class.content--auth]="isAuthRoute()">
+    <router-outlet />
+  </main>
+</div>
