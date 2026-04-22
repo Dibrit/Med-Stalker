@@ -6,7 +6,7 @@
     </a>
 
     <nav class="links" *ngIf="(session.state$ | async) as s">
-      <a routerLink="/dashboard" routerLinkActive="is-active">Dashboard</a>
+      <a routerLink="/dashboard" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
 
       <ng-container *ngIf="s.mode === 'doctor'">
         <a routerLink="/patients" routerLinkActive="is-active">Patients</a>
@@ -15,6 +15,9 @@
       <ng-container *ngIf="s.mode !== 'doctor'">
         <a routerLink="/my-records" routerLinkActive="is-active">My records</a>
       </ng-container>
+
+      <a routerLink="/diagnoses" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Diagnoses</a>
+      <a routerLink="/prescriptions" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Prescriptions</a>
     </nav>
 
     <div class="right">
@@ -27,4 +30,3 @@
     </div>
   </div>
 </header>
-

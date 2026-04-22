@@ -1,0 +1,86 @@
+<section class="page">
+  <div class="page__hd">
+    <div>
+      <h1>Diagnoses</h1>
+      <p class="sub" *ngIf="mode === 'doctor'">Detailed list of diagnoses across your accessible patient charts.</p>
+      <p class="sub" *ngIf="mode !== 'doctor'">Detailed list of diagnoses from your medical record.</p>
+    </div>
+
+    <a class="btn btn--secondary" routerLink="/patients" *ngIf="mode === 'doctor'">Open patients</a>
+    <a class="btn btn--secondary" routerLink="/my-records" *ngIf="mode !== 'doctor'">Open my records</a>
+  </div>
+
+  <div class="alert alert--error" *ngIf="error">{{ error }}</div>
+
+  <div class="panel" *ngIf="loading">
+    <div class="panel__bd">Loading diagnoses…</div>
+  </div>
+
+  <div class="panel" *ngIf="!loading && !error && diagnoses.length === 0">
+    <div class="panel__bd">No diagnoses available.</div>
+  </div>
+
+  <div class="record-list" *ngIf="!loading && !error && diagnoses.length > 0">
+    <article class="panel record" *ngFor="let diagnosis of diagnoses">
+      <div class="panel__hd record__hd">
+        <div class="record__title">
+          <h2>{{ diagnosis.title }}</h2>
+          <p class="record__sub" *ngIf="mode === 'doctor' && diagnosis.patient as patient">
+            <span>{{ patient.last_name }}, {{ patient.first_name }}</span>
+            <span class="sep">•</span>
+            <span class="mono">MRN {{ patient.medical_record_number }}</span>
+          </p>
+          <p class="record__sub" *ngIf="mode !== 'doctor'">Diagnosis details from your chart.</p>
+        </div>
+
+        <a
+          class="btn btn--secondary"
+          *ngIf="mode === 'doctor' && diagnosis.patient.id"
+          [routerLink]="['/patients', diagnosis.patient.id]"
+          [queryParams]="{ tab: 'diagnoses' }"
+        >
+          Open patient chart
+        </a>
+      </div>
+
+      <div class="panel__bd">
+        <div class="detail-grid">
+          <div class="detail">
+            <div class="detail__label">ICD code</div>
+            <div class="detail__value mono">{{ diagnosis.icd_code || '—' }}</div>
+          </div>
+
+          <div class="detail">
+            <div class="detail__label">Status</div>
+            <div class="detail__value">{{ diagnosis.status || '—' }}</div>
+          </div>
+
+          <div class="detail">
+            <div class="detail__label">Diagnosed at</div>
+            <div class="detail__value mono">{{ diagnosis.diagnosed_at | date: 'medium' }}</div>
+          </div>
+
+          <div class="detail">
+            <div class="detail__label">Recorded by</div>
+            <div class="detail__value mono">{{ diagnosis.recorded_by_id }}</div>
+          </div>
+
+          <div class="detail">
+            <div class="detail__label">Created</div>
+            <div class="detail__value mono">{{ diagnosis.created_at | date: 'medium' }}</div>
+          </div>
+
+          <div class="detail">
+            <div class="detail__label">Updated</div>
+            <div class="detail__value mono">{{ diagnosis.updated_at | date: 'medium' }}</div>
+          </div>
+        </div>
+
+        <div class="record__text" *ngIf="diagnosis.description">
+          <div class="detail__label">Description</div>
+          <p>{{ diagnosis.description }}</p>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>

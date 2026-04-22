@@ -18,6 +18,16 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/dashboard/dashboard.page').then((m) => m.DashboardPage)
   },
   {
+    path: 'diagnoses',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/diagnoses/diagnoses.page').then((m) => m.DiagnosesPage)
+  },
+  {
+    path: 'prescriptions',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/prescriptions/prescriptions.page').then((m) => m.PrescriptionsPage)
+  },
+  {
     path: 'patients',
     canActivate: [authGuard, doctorGuard],
     loadComponent: () => import('./pages/patients/patients.page').then((m) => m.PatientsPage)

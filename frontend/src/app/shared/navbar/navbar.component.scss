@@ -8,7 +8,7 @@
   margin: 0 auto;
   padding: var(--s-3) var(--s-5);
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--s-4);
 }
@@ -34,6 +34,7 @@
   display: inline-flex;
   gap: var(--s-4);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .links a {
@@ -59,6 +60,7 @@
   gap: var(--s-3);
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .mode {
@@ -67,4 +69,18 @@
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
+}
+
+@media (max-width: 860px) {
+  .nav__inner {
+    grid-template-columns: 1fr;
+  }
+
+  .links {
+    gap: var(--s-2);
+  }
+
+  .right {
+    justify-content: space-between;
+  }
 }

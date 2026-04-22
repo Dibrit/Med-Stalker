@@ -77,6 +77,10 @@ export class PatientDetailPage {
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.patientId = Number.isFinite(id) ? id : 0;
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'profile' || tab === 'diagnoses' || tab === 'prescriptions') {
+      this.tab = tab;
+    }
     this.reload();
   }
 
@@ -308,4 +312,3 @@ export class PatientDetailPage {
     });
   }
 }
-

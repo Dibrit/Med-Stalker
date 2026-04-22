@@ -32,8 +32,7 @@
         <div class="v">{{ counts.diagnoses }}</div>
       </div>
       <div class="panel__bd">
-        <a class="btn btn--link" routerLink="/patients" *ngIf="s.mode === 'doctor'">Manage via patient pages</a>
-        <a class="btn btn--link" routerLink="/my-records" *ngIf="s.mode !== 'doctor'">See my diagnoses</a>
+        <a class="btn btn--link" routerLink="/diagnoses">View diagnoses</a>
       </div>
     </div>
 
@@ -43,10 +42,8 @@
         <div class="v">{{ counts.prescriptions }}</div>
       </div>
       <div class="panel__bd">
-        <a class="btn btn--link" routerLink="/patients" *ngIf="s.mode === 'doctor'">Manage via patient pages</a>
-        <a class="btn btn--link" routerLink="/my-records" *ngIf="s.mode !== 'doctor'">See my prescriptions</a>
+        <a class="btn btn--link" routerLink="/prescriptions">View prescriptions</a>
       </div>
     </div>
   </div>
 </section>
-
