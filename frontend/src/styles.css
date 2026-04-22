@@ -1,0 +1,21 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, "Segoe UI", sans-serif;
+  background: #f3f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(15, 118, 110, 0.14), transparent 35%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4f9 100%);
+}
