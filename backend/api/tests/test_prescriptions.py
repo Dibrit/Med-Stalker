@@ -44,6 +44,7 @@ class PrescriptionListCreateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = {row["medication_name"] for row in response.data}
         self.assertSetEqual(names, {"Med A", "Med B"})
+        self.assertEqual(response.data[0]["prescribed_by_name"], "rx_doc")
 
     def test_patient_lists_only_own_prescriptions(self):
         """Patients only see prescriptions assigned to them."""
@@ -86,6 +87,7 @@ class PrescriptionListCreateTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["prescribed_by_id"], self.doctor.doctor_profile.pk)
+        self.assertEqual(response.data["prescribed_by_name"], "rx_doc")
 
     def test_create_rejects_diagnosis_for_different_patient(self):
         """Prescription creation fails if the diagnosis belongs to another patient."""

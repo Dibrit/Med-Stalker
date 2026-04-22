@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+def _display_name_for_user(user) -> str:
+    full_name = user.get_full_name().strip()
+    return full_name or user.get_username()
+
+
 def _generate_medical_record_number() -> str:
     while True:
         candidate = f"MRN-{token_hex(4).upper()}"
@@ -152,6 +157,7 @@ class DiagnosisSerializer(serializers.ModelSerializer):
         write_only=True,
     )
     recorded_by_id = serializers.IntegerField(read_only=True)
+    recorded_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Diagnosis
@@ -160,6 +166,7 @@ class DiagnosisSerializer(serializers.ModelSerializer):
             "patient",
             "patient_id",
             "recorded_by_id",
+            "recorded_by_name",
             "title",
             "description",
             "icd_code",
@@ -168,7 +175,17 @@ class DiagnosisSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "patient", "recorded_by_id", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "patient",
+            "recorded_by_id",
+            "recorded_by_name",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_recorded_by_name(self, obj):
+        return _display_name_for_user(obj.recorded_by.user)
 
     def validate_diagnosed_at(self, value):
         if value > timezone.now():
@@ -195,6 +212,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         required=False,
     )
     prescribed_by_id = serializers.IntegerField(read_only=True)
+    prescribed_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Prescription
@@ -203,6 +221,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             "patient",
             "patient_id",
             "prescribed_by_id",
+            "prescribed_by_name",
             "diagnosis",
             "medication_name",
             "instructions",
@@ -211,7 +230,17 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "patient", "prescribed_by_id", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "patient",
+            "prescribed_by_id",
+            "prescribed_by_name",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_prescribed_by_name(self, obj):
+        return _display_name_for_user(obj.prescribed_by.user)
 
     def validate(self, attrs):
         # A couple of cross-field checks that are easier here than in the model.

@@ -24,6 +24,7 @@ export interface Diagnosis {
   id: number;
   patient: Patient;
   recorded_by_id: number;
+  recorded_by_name: string;
   title: string;
   description?: string | null;
   icd_code?: string | null;
@@ -37,6 +38,7 @@ export interface Prescription {
   id: number;
   patient: Patient;
   prescribed_by_id: number;
+  prescribed_by_name: string;
   diagnosis: number | null;
   medication_name?: string | null;
   instructions: string;
@@ -45,4 +47,3 @@ export interface Prescription {
   created_at: string;
   updated_at: string;
 }
-
