@@ -7,6 +7,8 @@ The application should support:
 
 - login and logout
 - navigation between pages
+- viewing doctors
+- booking appointments
 - viewing patients
 - viewing diagnoses and prescriptions
 - creating and updating diagnosis/prescription data
@@ -53,6 +55,8 @@ Required:
 
 Recommended services:
 - `AuthService`
+- `DoctorService`
+- `AppointmentService`
 - `PatientService`
 - `DiagnosisService`
 - `PrescriptionService`
@@ -60,6 +64,8 @@ Recommended services:
 The frontend should call backend endpoints for:
 - login
 - logout
+- loading doctors
+- creating/updating appointments
 - loading patients
 - loading patient details
 - creating/updating/deleting diagnoses
@@ -72,6 +78,8 @@ Create TypeScript interfaces for API data.
 
 Recommended interfaces:
 - `User`
+- `Doctor`
+- `Appointment`
 - `Patient`
 - `Diagnosis`
 - `Prescription`
@@ -97,6 +105,7 @@ Recommended fields:
 
 Possible forms:
 - login form
+- appointment booking form
 - diagnosis form
 - prescription form
 
@@ -107,6 +116,7 @@ Implement at least **4 `(click)` events** that call the backend.
 
 Recommended:
 - login button
+- book appointment button
 - save diagnosis button
 - delete diagnosis button
 - save prescription button
@@ -168,6 +178,9 @@ The design can stay simple, but it should not look unfinished.
 
 ### Components
 - Navbar
+- Doctor list
+- Appointment form
+- Appointment list
 - Diagnosis list
 - Diagnosis form
 - Prescription list

@@ -141,6 +141,25 @@ Paths below are recommended conventions for implementation and frontend integrat
 | GET | `/api/patients/` | Yes | List patients |
 | GET | `/api/patients/{id}/` | Yes | Get patient details |
 
+### Doctors
+
+| Method | Path | Auth Required | Purpose |
+|---|---|---|---|
+| GET | `/api/doctors/` | Yes | List doctors for selection and scheduling |
+
+### Appointments
+
+| Method | Path | Auth Required | Purpose |
+|---|---|---|---|
+| GET | `/api/appointments/` | Yes | List appointments visible to the current user |
+| POST | `/api/appointments/` | Yes | Create a new appointment request |
+| GET | `/api/appointments/{id}/` | Yes | Get appointment details |
+| PUT | `/api/appointments/{id}/` | Yes | Replace appointment |
+| PATCH | `/api/appointments/{id}/` | Yes | Partially update appointment |
+
+New appointments must be created by a patient, use `doctor_id` to choose the doctor, and start with `status="requested"`.
+The API rejects past bookings, invalid time ranges, overlapping appointments for the same doctor, and overlapping active appointments for the same patient.
+
 ### Diagnoses (full CRUD required for at least one model, `Diagnosis` is recommended)
 
 | Method | Path | Auth Required | Purpose |
@@ -182,8 +201,12 @@ Users must have either a **doctor** or **patient** profile (created in the datab
 
 | Area | Doctor | Patient |
 |---|---|---|
+| Doctors `GET /api/doctors/` | All doctors | All doctors |
 | Patients `GET /api/patients/` | All patients | Own profile only |
 | Patients `GET /api/patients/{id}/` | Any id | Own id only (other ids → **404**) |
+| Appointments `GET` list / detail | Only appointments assigned to that doctor (other doctors' detail ids → **404**) | Own appointments only |
+| Appointments `POST` | **403** | Allowed, `doctor_id` required, patient is inferred from auth |
+| Appointments `PUT`, `PATCH` | Allowed for the doctor's own appointments | Allowed for the patient's own appointments, subject to status rules |
 | Diagnoses `GET` list / detail | Only diagnoses recorded by that doctor (other doctors' detail ids → **404**) | Own diagnoses only (other detail ids → **404**) |
 | Diagnoses `POST`, `PUT`, `PATCH`, `DELETE` | Allowed for the doctor's own diagnoses (subject to validation) | **403** (read-only) |
 | Prescriptions `GET` list / detail | Only prescriptions written by that doctor (other doctors' detail ids → **404**) | Own only |
@@ -197,8 +220,10 @@ From `frontend/README.md`, the frontend should call endpoints for:
 
 - login
 - logout
+- load doctors
 - load patient list
 - load patient detail
+- create/update appointments
 - create/update/delete diagnoses
 - create/update/delete prescriptions
 

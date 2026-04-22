@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Diagnosis, DoctorProfile, PatientProfile, Prescription
+from .models import Appointment, Diagnosis, DoctorProfile, PatientProfile, Prescription
 
 admin.site.site_header = "Med-Stalker administration"
 admin.site.site_title = "Med-Stalker"
@@ -36,6 +36,21 @@ class PrescriptionInline(admin.TabularInline):
         return False
 
 
+class AppointmentInline(admin.TabularInline):
+    """Read-only snapshot of appointments on the patient change page."""
+
+    model = Appointment
+    extra = 0
+    can_delete = False
+    show_change_link = True
+    fields = ("doctor", "status", "starts_at", "ends_at", "reason")
+    readonly_fields = fields
+    ordering = ("starts_at",)
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 class RecordedDiagnosisInline(admin.TabularInline):
     """Diagnoses recorded by this doctor (read-only; edit via Diagnosis admin)."""
 
@@ -48,6 +63,23 @@ class RecordedDiagnosisInline(admin.TabularInline):
     fields = ("title", "patient", "status", "diagnosed_at")
     readonly_fields = fields
     ordering = ("-diagnosed_at",)
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+class DoctorAppointmentInline(admin.TabularInline):
+    """Appointments assigned to this doctor (read-only)."""
+
+    model = Appointment
+    fk_name = "doctor"
+    verbose_name_plural = "Appointments assigned to this doctor"
+    extra = 0
+    can_delete = False
+    show_change_link = True
+    fields = ("patient", "status", "starts_at", "ends_at", "reason")
+    readonly_fields = fields
+    ordering = ("starts_at",)
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -76,7 +108,7 @@ class DoctorProfileAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     list_select_related = ("user",)
     ordering = ("user__username",)
-    inlines = (RecordedDiagnosisInline,)
+    inlines = (RecordedDiagnosisInline, DoctorAppointmentInline)
     fieldsets = (
         (None, {"fields": ("user",)}),
         ("Professional", {"fields": ("specialization", "license_number")}),
@@ -104,7 +136,7 @@ class PatientProfileAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     list_select_related = ("user",)
     ordering = ("user__username",)
-    inlines = (DiagnosisInline, PrescriptionInline)
+    inlines = (DiagnosisInline, PrescriptionInline, AppointmentInline)
     fieldsets = (
         (None, {"fields": ("user",)}),
         ("Demographics", {"fields": ("date_of_birth", "phone", "medical_record_number")}),
@@ -180,3 +212,28 @@ class PrescriptionAdmin(admin.ModelAdmin):
     @admin.display(description="Medication / label")
     def medication_name_or_label(self, obj: Prescription) -> str:
         return obj.medication_name or "Recommendation"
+
+
+@admin.register(Appointment)
+class AppointmentAdmin(admin.ModelAdmin):
+    list_display = ("starts_at", "ends_at", "status", "patient", "doctor")
+    list_filter = (
+        "status",
+        "starts_at",
+        ("doctor", admin.RelatedOnlyFieldListFilter),
+    )
+    search_fields = (
+        "reason",
+        "patient__user__username",
+        "doctor__user__username",
+    )
+    autocomplete_fields = ("patient", "doctor")
+    readonly_fields = ("created_at", "updated_at")
+    date_hierarchy = "starts_at"
+    list_select_related = ("patient", "patient__user", "doctor", "doctor__user")
+    ordering = ("starts_at", "pk")
+    fieldsets = (
+        (None, {"fields": ("patient", "doctor", "status")}),
+        ("Schedule", {"fields": ("starts_at", "ends_at", "reason")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
