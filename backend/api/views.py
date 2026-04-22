@@ -88,7 +88,7 @@ def auth_register(request):
 
 
 def _diagnosis_queryset_for_user(user):
-    # Small helper so we don't repeat "doctor sees all / patient sees own" logic.
+    # Doctors only see diagnoses they recorded; patients see diagnoses from their own chart.
     qs = Diagnosis.objects.select_related(
         "patient",
         "patient__user",
@@ -96,7 +96,7 @@ def _diagnosis_queryset_for_user(user):
         "recorded_by__user",
     )
     if getattr(user, "doctor_profile", None):
-        return qs.all()
+        return qs.filter(recorded_by=user.doctor_profile)
     if getattr(user, "patient_profile", None):
         return qs.filter(patient=user.patient_profile)
     return qs.none()
@@ -207,10 +207,10 @@ class PatientDetailView(generics.RetrieveAPIView):
 
 
 def _prescription_queryset_for_user(user):
-    # Same access pattern as diagnoses.
+    # Doctors only see prescriptions they wrote; patients see prescriptions from their own chart.
     related = ("patient", "patient__user", "diagnosis", "prescribed_by", "prescribed_by__user")
     if getattr(user, "doctor_profile", None):
-        return Prescription.objects.select_related(*related)
+        return Prescription.objects.select_related(*related).filter(prescribed_by=user.doctor_profile)
     if getattr(user, "patient_profile", None):
         return Prescription.objects.filter(patient=user.patient_profile).select_related(*related)
     return Prescription.objects.none()

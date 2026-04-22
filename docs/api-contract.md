@@ -75,6 +75,7 @@ This backend does **not** expose a `role` field in the API. Access is determined
     "updated_at": "2026-04-16T10:30:00Z"
   },
   "recorded_by_id": 1,
+  "recorded_by_name": "doctor1",
   "title": "Hypertension",
   "description": "Persistent elevated blood pressure",
   "icd_code": "I10",
@@ -102,6 +103,7 @@ This backend does **not** expose a `role` field in the API. Access is determined
     "updated_at": "2026-04-16T10:30:00Z"
   },
   "prescribed_by_id": 1,
+  "prescribed_by_name": "doctor1",
   "diagnosis": 8,
   "medication_name": "Lisinopril",
   "instructions": "10 mg once daily, mornings",
@@ -244,7 +246,7 @@ Access: doctor (any patient) or patient (self only)
 
 ### `GET /diagnoses/`
 Purpose: list diagnoses  
-Access: doctor (all) or patient (own only)
+Access: doctor (only diagnoses recorded by that doctor) or patient (own only)
 
 ### `POST /diagnoses/`
 Purpose: create diagnosis  
@@ -279,6 +281,7 @@ Response:
     "updated_at": "2026-04-16T10:30:00Z"
   },
   "recorded_by_id": 1,
+  "recorded_by_name": "doctor1",
   "title": "Hypertension",
   "description": "Persistent elevated blood pressure",
   "icd_code": "I10",
@@ -291,11 +294,12 @@ Response:
 
 ### `GET /diagnoses/{id}/`
 Purpose: diagnosis detail
+Access: doctor (only if recorded by that doctor) or patient (own only)
 
 ### `PUT /diagnoses/{id}/`
 ### `PATCH /diagnoses/{id}/`
 Purpose: update diagnosis  
-Access: doctor only
+Access: doctor only, and only for diagnoses recorded by that doctor
 
 Example request:
 ```json
@@ -306,7 +310,7 @@ Example request:
 
 ### `DELETE /diagnoses/{id}/`
 Purpose: delete diagnosis  
-Access: doctor only
+Access: doctor only, and only for diagnoses recorded by that doctor
 
 Response:
 ```http
@@ -316,6 +320,7 @@ Response:
 Notes:
 
 - `recorded_by_id` is set by the backend from the logged-in doctor's profile.
+- `recorded_by_name` is returned as the doctor's full name when available, otherwise username.
 - `diagnosed_at` cannot be in the future.
 
 ---
@@ -325,7 +330,7 @@ Notes:
 ### `GET /prescriptions/`
 Purpose: list prescriptions
 
-Access: doctor (all) or patient (own only)
+Access: doctor (only prescriptions written by that doctor) or patient (own only)
 
 ### `POST /prescriptions/`
 Purpose: create prescription  
@@ -360,6 +365,7 @@ Response:
     "updated_at": "2026-04-16T10:30:00Z"
   },
   "prescribed_by_id": 1,
+  "prescribed_by_name": "doctor1",
   "diagnosis": 8,
   "medication_name": "Lisinopril",
   "instructions": "10 mg once daily, mornings",
@@ -372,15 +378,16 @@ Response:
 
 ### `GET /prescriptions/{id}/`
 Purpose: prescription detail
+Access: doctor (only if written by that doctor) or patient (own only)
 
 ### `PUT /prescriptions/{id}/`
 ### `PATCH /prescriptions/{id}/`
 Purpose: update prescription  
-Access: doctor only
+Access: doctor only, and only for prescriptions written by that doctor
 
 ### `DELETE /prescriptions/{id}/`
 Purpose: delete prescription  
-Access: doctor only
+Access: doctor only, and only for prescriptions written by that doctor
 
 Response:
 ```http
@@ -390,6 +397,7 @@ Response:
 Notes:
 
 - `prescribed_by_id` is set by the backend from the logged-in doctor's profile.
+- `prescribed_by_name` is returned as the doctor's full name when available, otherwise username.
 - `diagnosis` is optional and may be `null`.
 
 ---

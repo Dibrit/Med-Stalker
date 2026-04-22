@@ -184,10 +184,10 @@ Users must have either a **doctor** or **patient** profile (created in the datab
 |---|---|---|
 | Patients `GET /api/patients/` | All patients | Own profile only |
 | Patients `GET /api/patients/{id}/` | Any id | Own id only (other ids → **404**) |
-| Diagnoses `GET` list / detail | All diagnoses | Own diagnoses only (other detail ids → **404**) |
-| Diagnoses `POST`, `PUT`, `PATCH`, `DELETE` | Allowed (subject to validation) | **403** (read-only) |
-| Prescriptions `GET` list / detail | All | Own only |
-| Prescriptions `POST`, `PUT`, `PATCH`, `DELETE` | Allowed | **403** |
+| Diagnoses `GET` list / detail | Only diagnoses recorded by that doctor (other doctors' detail ids → **404**) | Own diagnoses only (other detail ids → **404**) |
+| Diagnoses `POST`, `PUT`, `PATCH`, `DELETE` | Allowed for the doctor's own diagnoses (subject to validation) | **403** (read-only) |
+| Prescriptions `GET` list / detail | Only prescriptions written by that doctor (other doctors' detail ids → **404**) | Own only |
+| Prescriptions `POST`, `PUT`, `PATCH`, `DELETE` | Allowed for the doctor's own prescriptions | **403** |
 
 Logout requires `Authorization: Bearer <access>` plus a valid `refresh` in the JSON body so the server can blacklist that refresh token.
 
