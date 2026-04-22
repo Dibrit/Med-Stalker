@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { DiagnosisService } from '../../core/diagnoses/diagnosis.service';
 import { Patient, Diagnosis, Prescription } from '../../core/models';
@@ -10,7 +11,7 @@ import { ToastService } from '../../shared/toast/toast.service';
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './my-records.page.html',
   styleUrl: './my-records.page.scss'
 })
@@ -56,4 +57,3 @@ export class MyRecordsPage {
     });
   }
 }
-

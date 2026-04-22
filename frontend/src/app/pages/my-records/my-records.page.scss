@@ -19,6 +19,17 @@ h1 {
   gap: var(--s-4);
 }
 
+.section-link {
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.section-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
 .kv {
   display: grid;
   grid-template-columns: 180px 1fr;
@@ -60,4 +71,3 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
-
