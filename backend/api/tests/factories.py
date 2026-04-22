@@ -1,7 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from api.models import Diagnosis, DoctorProfile, PatientProfile, Prescription
+from api.models import Appointment, Diagnosis, DoctorProfile, PatientProfile, Prescription
 
 User = get_user_model()
 
@@ -38,3 +40,15 @@ def create_prescription(*, patient: PatientProfile, doctor: DoctorProfile, **kwa
     }
     defaults.update(kwargs)
     return Prescription.objects.create(patient=patient, prescribed_by=doctor, **defaults)
+
+
+def create_appointment(*, patient: PatientProfile, doctor: DoctorProfile, **kwargs):
+    starts_at = timezone.now() + timedelta(days=1)
+    defaults = {
+        "status": Appointment.Status.REQUESTED,
+        "reason": "Routine checkup",
+        "starts_at": starts_at,
+        "ends_at": starts_at + timedelta(minutes=45),
+    }
+    defaults.update(kwargs)
+    return Appointment.objects.create(patient=patient, doctor=doctor, **defaults)

@@ -58,6 +58,22 @@ This backend does **not** expose a `role` field in the API. Access is determined
 }
 ```
 
+### Doctor
+```json
+{
+  "id": 1,
+  "username": "doctor1",
+  "email": "doctor1@example.com",
+  "first_name": "Doc",
+  "last_name": "Tor",
+  "full_name": "Doc Tor",
+  "specialization": "Cardiology",
+  "license_number": "LIC-123456",
+  "created_at": "2026-04-16T10:30:00Z",
+  "updated_at": "2026-04-16T10:30:00Z"
+}
+```
+
 ### Diagnosis
 ```json
 {
@@ -109,6 +125,43 @@ This backend does **not** expose a `role` field in the API. Access is determined
   "instructions": "10 mg once daily, mornings",
   "issued_at": "2026-04-16T10:30:00Z",
   "valid_until": "2026-05-16",
+  "created_at": "2026-04-16T10:30:00Z",
+  "updated_at": "2026-04-16T10:30:00Z"
+}
+```
+
+### Appointment
+```json
+{
+  "id": 11,
+  "patient": {
+    "id": 3,
+    "username": "patient1",
+    "email": "patient1@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
+    "date_of_birth": "2000-05-12",
+    "phone": "+77001234567",
+    "medical_record_number": "MRN-000123",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "doctor": {
+    "id": 1,
+    "username": "doctor1",
+    "email": "doctor1@example.com",
+    "first_name": "Doc",
+    "last_name": "Tor",
+    "full_name": "Doc Tor",
+    "specialization": "Cardiology",
+    "license_number": "LIC-123456",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "status": "requested",
+  "reason": "Recurring headaches",
+  "starts_at": "2026-04-20T09:00:00Z",
+  "ends_at": "2026-04-20T09:45:00Z",
   "created_at": "2026-04-16T10:30:00Z",
   "updated_at": "2026-04-16T10:30:00Z"
 }
@@ -239,6 +292,111 @@ Response:
 ### `GET /patients/{id}/`
 Purpose: patient detail  
 Access: doctor (any patient) or patient (self only)
+
+---
+
+## Doctor Endpoints
+
+### `GET /doctors/`
+Purpose: list doctors available for discovery and appointment booking  
+Access: doctor or patient
+
+Response:
+```json
+[
+  {
+    "id": 1,
+    "username": "doctor1",
+    "email": "doctor1@example.com",
+    "first_name": "Doc",
+    "last_name": "Tor",
+    "full_name": "Doc Tor",
+    "specialization": "Cardiology",
+    "license_number": "LIC-123456",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  }
+]
+```
+
+---
+
+## Appointment Endpoints
+
+### `GET /appointments/`
+Purpose: list appointments  
+Access: doctor (only appointments assigned to that doctor) or patient (own only)
+
+### `POST /appointments/`
+Purpose: create appointment request  
+Access: patient only
+
+Request:
+```json
+{
+  "doctor_id": 1,
+  "reason": "Recurring headaches",
+  "starts_at": "2026-04-20T09:00:00Z",
+  "ends_at": "2026-04-20T09:45:00Z"
+}
+```
+
+Response:
+```json
+{
+  "id": 11,
+  "patient": {
+    "id": 3,
+    "username": "patient1",
+    "email": "patient1@example.com",
+    "first_name": "Pat",
+    "last_name": "Ient",
+    "date_of_birth": "2000-05-12",
+    "phone": "+77001234567",
+    "medical_record_number": "MRN-000123",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "doctor": {
+    "id": 1,
+    "username": "doctor1",
+    "email": "doctor1@example.com",
+    "first_name": "Doc",
+    "last_name": "Tor",
+    "full_name": "Doc Tor",
+    "specialization": "Cardiology",
+    "license_number": "LIC-123456",
+    "created_at": "2026-04-16T10:30:00Z",
+    "updated_at": "2026-04-16T10:30:00Z"
+  },
+  "status": "requested",
+  "reason": "Recurring headaches",
+  "starts_at": "2026-04-20T09:00:00Z",
+  "ends_at": "2026-04-20T09:45:00Z",
+  "created_at": "2026-04-16T10:30:00Z",
+  "updated_at": "2026-04-16T10:30:00Z"
+}
+```
+
+### `GET /appointments/{id}/`
+Purpose: appointment detail  
+Access: doctor (only if assigned to that doctor) or patient (own only)
+
+### `PUT /appointments/{id}/`
+### `PATCH /appointments/{id}/`
+Purpose: update appointment  
+Access:
+
+- doctor: allowed for appointments assigned to that doctor
+- patient: allowed for own appointments
+
+Notes:
+
+- the patient is always inferred from the authenticated user on create
+- `doctor_id` is write-only and chooses the doctor when creating or rescheduling
+- new appointments always start with `status="requested"`
+- active appointments cannot overlap for the same doctor or the same patient
+- patients can cancel their own appointments but cannot confirm or complete them
 
 ---
 
@@ -406,8 +564,11 @@ Notes:
 
 - `LoginComponent` → `POST /auth/login/`, `POST /auth/refresh/`
 - `NavbarComponent` → `POST /auth/logout/`
+- `DoctorListComponent` → `GET /doctors/`
 - `PatientListComponent` → `GET /patients/`
 - `PatientDetailComponent` → `GET /patients/{id}/`
+- `AppointmentListComponent` → `GET /appointments/`
+- `AppointmentFormComponent` → `POST /appointments/`, `PATCH /appointments/{id}/`
 - `DiagnosisListComponent` → `GET /diagnoses/`
 - `DiagnosisFormComponent` → `POST /diagnoses/`, `PATCH /diagnoses/{id}/`
 - `PrescriptionListComponent` → `GET /prescriptions/`

@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Diagnosis, PatientProfile, Prescription
+from .models import Appointment, Diagnosis, DoctorProfile, PatientProfile, Prescription
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -149,6 +149,33 @@ class PatientSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "created_at", "updated_at")
 
 
+class DoctorSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DoctorProfile
+        fields = (
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "full_name",
+            "specialization",
+            "license_number",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+    def get_full_name(self, obj: DoctorProfile) -> str:
+        return obj.user.get_full_name() or obj.user.get_username()
+
+
 class DiagnosisSerializer(serializers.ModelSerializer):
     patient = PatientSerializer(read_only=True)
     patient_id = serializers.PrimaryKeyRelatedField(
@@ -186,6 +213,9 @@ class DiagnosisSerializer(serializers.ModelSerializer):
 
     def get_recorded_by_name(self, obj):
         return _display_name_for_user(obj.recorded_by.user)
+
+    def get_recorded_by_name(self, obj: Diagnosis) -> str:
+        return obj.recorded_by.user.get_full_name() or obj.recorded_by.user.get_username()
 
     def validate_diagnosed_at(self, value):
         if value > timezone.now():
@@ -242,6 +272,9 @@ class PrescriptionSerializer(serializers.ModelSerializer):
     def get_prescribed_by_name(self, obj):
         return _display_name_for_user(obj.prescribed_by.user)
 
+    def get_prescribed_by_name(self, obj: Prescription) -> str:
+        return obj.prescribed_by.user.get_full_name() or obj.prescribed_by.user.get_username()
+
     def validate(self, attrs):
         # A couple of cross-field checks that are easier here than in the model.
         diagnosis = attrs.get("diagnosis")
@@ -271,4 +304,111 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         # Same idea as diagnoses: the prescriber is the logged-in doctor.
         request = self.context["request"]
         validated_data["prescribed_by"] = request.user.doctor_profile
+        return super().create(validated_data)
+
+
+class AppointmentSerializer(serializers.ModelSerializer):
+    patient = PatientSerializer(read_only=True)
+    doctor = DoctorSerializer(read_only=True)
+    doctor_id = serializers.PrimaryKeyRelatedField(
+        queryset=DoctorProfile.objects.select_related("user").all(),
+        source="doctor",
+        write_only=True,
+    )
+
+    class Meta:
+        model = Appointment
+        fields = (
+            "id",
+            "patient",
+            "doctor",
+            "doctor_id",
+            "status",
+            "reason",
+            "starts_at",
+            "ends_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "patient", "doctor", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        user = request.user
+        patient_profile = getattr(user, "patient_profile", None)
+        doctor_profile = getattr(user, "doctor_profile", None)
+
+        doctor = attrs.get("doctor", self.instance.doctor if self.instance else None)
+        patient = self.instance.patient if self.instance else patient_profile
+        starts_at = attrs.get("starts_at", self.instance.starts_at if self.instance else None)
+        ends_at = attrs.get("ends_at", self.instance.ends_at if self.instance else None)
+        status_value = attrs.get(
+            "status",
+            self.instance.status if self.instance else Appointment.Status.REQUESTED,
+        )
+        starts_at_supplied = self.instance is None or "starts_at" in attrs
+
+        if self.instance is None and patient_profile is None:
+            raise serializers.ValidationError("Only patients can create appointments.")
+
+        if self.instance is None and "status" in attrs and status_value != Appointment.Status.REQUESTED:
+            raise serializers.ValidationError(
+                {"status": "New appointments must start with requested status."}
+            )
+
+        if self.instance is not None and patient_profile is not None:
+            if self.instance.status in (
+                Appointment.Status.CANCELLED,
+                Appointment.Status.COMPLETED,
+            ):
+                raise serializers.ValidationError("Closed appointments cannot be changed by patients.")
+            if "status" in attrs and status_value not in (
+                Appointment.Status.REQUESTED,
+                Appointment.Status.CANCELLED,
+            ):
+                raise serializers.ValidationError(
+                    {"status": "Patients can only keep an appointment requested or cancel it."}
+                )
+
+        if self.instance is not None and doctor_profile is not None and "doctor" in attrs:
+            if attrs["doctor"].pk != self.instance.doctor_id:
+                raise serializers.ValidationError(
+                    {"doctor_id": "Doctors cannot reassign appointments through this endpoint."}
+                )
+
+        if (
+            starts_at_supplied
+            and starts_at is not None
+            and starts_at <= timezone.now()
+            and status_value in Appointment.blocking_statuses()
+        ):
+            raise serializers.ValidationError(
+                {"starts_at": "Appointment must be scheduled in the future."}
+            )
+
+        if patient and doctor and starts_at and ends_at:
+            candidate = Appointment(
+                patient=patient,
+                doctor=doctor,
+                status=status_value,
+                reason=attrs.get("reason", self.instance.reason if self.instance else ""),
+                starts_at=starts_at,
+                ends_at=ends_at,
+            )
+            if self.instance is not None:
+                candidate.pk = self.instance.pk
+            try:
+                candidate.clean()
+            except DjangoValidationError as exc:
+                detail = exc.message_dict if hasattr(exc, "message_dict") else {"detail": exc.messages}
+                if "doctor" in detail:
+                    detail["doctor_id"] = detail.pop("doctor")
+                raise serializers.ValidationError(detail) from exc
+
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        validated_data["patient"] = request.user.patient_profile
+        validated_data["status"] = Appointment.Status.REQUESTED
         return super().create(validated_data)

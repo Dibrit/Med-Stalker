@@ -7,6 +7,8 @@ The application should support:
 
 - login and logout
 - navigation between pages
+- viewing doctors
+- booking appointments
 - viewing patients
 - viewing diagnoses and prescriptions
 - creating and updating diagnosis/prescription data
@@ -53,6 +55,8 @@ Required:
 
 Recommended services:
 - `AuthService`
+- `DoctorService`
+- `AppointmentService`
 - `PatientService`
 - `DiagnosisService`
 - `PrescriptionService`
@@ -60,6 +64,8 @@ Recommended services:
 The frontend should call backend endpoints for:
 - login
 - logout
+- loading doctors
+- creating/updating appointments
 - loading patients
 - loading patient details
 - creating/updating/deleting diagnoses
@@ -72,6 +78,8 @@ Create TypeScript interfaces for API data.
 
 Recommended interfaces:
 - `User`
+- `Doctor`
+- `Appointment`
 - `Patient`
 - `Diagnosis`
 - `Prescription`
@@ -97,6 +105,7 @@ Recommended fields:
 
 Possible forms:
 - login form
+- appointment booking form
 - diagnosis form
 - prescription form
 
@@ -107,6 +116,7 @@ Implement at least **4 `(click)` events** that call the backend.
 
 Recommended:
 - login button
+- book appointment button
 - save diagnosis button
 - delete diagnosis button
 - save prescription button
@@ -168,6 +178,9 @@ The design can stay simple, but it should not look unfinished.
 
 ### Components
 - Navbar
+- Doctor list
+- Appointment form
+- Appointment list
 - Diagnosis list
 - Diagnosis form
 - Prescription list
@@ -185,57 +198,6 @@ The design can stay simple, but it should not look unfinished.
 
 ## How to run
 
-All commands below assume your shell's current directory is `frontend/`.
-
-### Using the Makefile (recommended)
-
-Show the available commands:
-
-```bash
-make help
-```
-
-Common targets:
-
-```bash
-make sync   # install/update dependencies
-make run    # start Angular dev server on 0.0.0.0:4200
-make build  # create a production build
-make test   # run unit tests once
-```
-
-### Without make
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Start the dev server:
-
-```bash
-npm start -- --host 0.0.0.0
-```
-
-Create a production build:
-
-```bash
-npm run build
-```
-
-Run unit tests once:
-
-```bash
-npm test -- --watch=false
-```
-
-### Node version note
-
-Angular CLI warns on odd-numbered Node releases like `25.x`. If you run into
-local tooling issues, switch to an even-numbered LTS release such as Node `24`
-with:
-
-```bash
-nvm use
-```
+1. Install dependencies:
+   ```bash
+   npm install

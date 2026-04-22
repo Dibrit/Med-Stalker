@@ -10,10 +10,12 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Diagnosis, PatientProfile, Prescription
-from .permissions import IsDoctor, IsDoctorOrPatient
+from .models import Appointment, Diagnosis, DoctorProfile, PatientProfile, Prescription
+from .permissions import IsDoctor, IsDoctorOrPatient, IsPatient
 from .serializers import (
+    AppointmentSerializer,
     DiagnosisSerializer,
+    DoctorSerializer,
     LoginSerializer,
     LogoutSerializer,
     PatientSerializer,
@@ -206,6 +208,12 @@ class PatientDetailView(generics.RetrieveAPIView):
         return PatientProfile.objects.none()
 
 
+class DoctorListView(generics.ListAPIView):
+    serializer_class = DoctorSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrPatient]
+    queryset = DoctorProfile.objects.select_related("user").all()
+
+
 def _prescription_queryset_for_user(user):
     # Doctors only see prescriptions they wrote; patients see prescriptions from their own chart.
     related = ("patient", "patient__user", "diagnosis", "prescribed_by", "prescribed_by__user")
@@ -270,4 +278,54 @@ class PrescriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
             prescription_id,
             patient_id,
             user_id,
+        )
+
+
+def _appointment_queryset_for_user(user):
+    related = ("patient", "patient__user", "doctor", "doctor__user")
+    if getattr(user, "doctor_profile", None):
+        return Appointment.objects.select_related(*related).filter(doctor=user.doctor_profile)
+    if getattr(user, "patient_profile", None):
+        return Appointment.objects.select_related(*related).filter(patient=user.patient_profile)
+    return Appointment.objects.none()
+
+
+class AppointmentListCreateView(generics.ListCreateAPIView):
+    serializer_class = AppointmentSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrPatient]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated(), IsPatient()]
+        return super().get_permissions()
+
+    def get_queryset(self):
+        return _appointment_queryset_for_user(self.request.user)
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        logger.info(
+            "Appointment created id=%s patient_id=%s doctor_id=%s by user_id=%s",
+            instance.pk,
+            instance.patient_id,
+            instance.doctor_id,
+            self.request.user.pk,
+        )
+
+
+class AppointmentDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = AppointmentSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrPatient]
+    lookup_field = "pk"
+
+    def get_queryset(self):
+        return _appointment_queryset_for_user(self.request.user)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        logger.info(
+            "Appointment updated id=%s status=%s by user_id=%s",
+            instance.pk,
+            instance.status,
+            self.request.user.pk,
         )

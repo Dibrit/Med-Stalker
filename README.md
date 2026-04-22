@@ -6,7 +6,7 @@ Alexandr Chernov & Nesvetailov Artem
 
 This project is a **Medical Web Application** built for a Web Development course.
 
-The main goal of the system is to create a web platform where **doctors** and **patients** can interact through a structured medical record system. Doctors can manage patient-related medical data, assign diagnoses, and create prescriptions or recommendations. Patients can log in and view their own medical information.
+The main goal of the system is to create a web platform where **doctors** and **patients** can interact through a structured medical record system. Doctors can manage patient-related medical data, assign diagnoses, create prescriptions or recommendations, and manage appointments. Patients can log in, view their own medical information, and book appointments with doctors.
 
 The project is designed as a full-stack application with:
 
@@ -42,6 +42,7 @@ This project is also intended to give two students a clear division of work:
 A doctor can:
 - log in to the system
 - view patients
+- review and manage appointments assigned to them
 - assign diagnoses
 - create prescriptions or recommendations
 - manage medical records
@@ -50,6 +51,7 @@ A doctor can:
 A patient can:
 - register for an account
 - log in to the system
+- browse doctors and request appointments
 - view their own diagnoses
 - view their own prescriptions and recommendations
 
@@ -58,6 +60,7 @@ A patient can:
 ## Core Features
 
 - JWT-based patient registration, login, and logout
+- doctor directory and appointment booking
 - patient list and detail view
 - diagnosis management
 - prescription/recommendation management

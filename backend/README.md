@@ -9,6 +9,8 @@ The system should support:
 - patient self-registration
 - login and logout with JWT
 - patient data access
+- doctor directory access
+- appointment booking and management
 - diagnosis management
 - prescription/recommendation management
 - role-based access control
@@ -23,6 +25,7 @@ Create at least **4 models**.
 Recommended models:
 - `DoctorProfile`
 - `PatientProfile`
+- `Appointment`
 - `Diagnosis`
 - `Prescription`
 
@@ -56,18 +59,23 @@ Implement REST endpoints for the main entities.
 
 Minimum required functionality:
 - list patients
+- list doctors for patient booking
 - get patient details
 - full CRUD for at least **one model**
 - recommended CRUD target: `Diagnosis`
+- let patients create appointments by selecting a doctor
 - create prescriptions/recommendations for patients
 
 When creating medical records:
 - link created objects to the authenticated user with `request.user`
 
 Access model implemented in this repo:
+- doctors and patients can list doctors
 - doctors can list **all patients**
+- doctors can list/retrieve/update appointments assigned to their own `DoctorProfile`
 - doctors can only list/retrieve/update/delete diagnoses that were recorded by their own `DoctorProfile`
 - doctors can only list/retrieve/update/delete prescriptions that were written by their own `DoctorProfile`
+- patients can list/retrieve/update their own appointments and create new appointments
 - patients can only view their own patient profile, diagnoses, and prescriptions
 
 ---
@@ -80,6 +88,8 @@ Required:
 Recommended:
 - `LoginSerializer`
 - `LogoutSerializer`
+- `DoctorSerializer`
+- `AppointmentSerializer`
 - `DiagnosisSerializer`
 - `PrescriptionSerializer`
 
@@ -223,7 +233,7 @@ make seed
 You can customize counts and keep the output reproducible:
 
 ```bash
-uv run python manage.py seed_dev_data --seed 42 --doctors 5 --patients 30 --diagnoses 120 --prescriptions 120
+uv run python manage.py seed_dev_data --seed 42 --doctors 5 --patients 30 --diagnoses 120 --prescriptions 120 --appointments 80
 ```
 
 Created users are named like `demo_doctor_001` / `demo_patient_001` (override with `--prefix`) and all share the same dev password (override with `--password`).
