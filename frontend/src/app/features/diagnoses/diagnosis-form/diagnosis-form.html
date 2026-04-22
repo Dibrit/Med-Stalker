@@ -1,0 +1,20 @@
+<h2>Create Diagnosis</h2>
+
+<select [(ngModel)]="data.patient">
+  <option *ngFor="let p of patients" [value]="p.id">
+    {{ p.first_name }} {{ p.last_name }}
+  </option>
+</select>
+
+<input [(ngModel)]="data.title" placeholder="Title">
+
+<textarea [(ngModel)]="data.description" placeholder="Description"></textarea>
+
+<select [(ngModel)]="data.status">
+  <option value="active">Active</option>
+  <option value="resolved">Resolved</option>
+</select>
+
+<input [(ngModel)]="data.diagnosed_at" type="datetime-local">
+
+<button (click)="submit()">Create</button>

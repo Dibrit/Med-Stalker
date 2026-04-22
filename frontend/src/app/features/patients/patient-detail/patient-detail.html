@@ -1,0 +1,10 @@
+<h2>Patient Detail</h2>
+
+<div *ngIf="patient">
+
+  <h3>{{ patient.first_name }} {{ patient.last_name }}</h3>
+  <p>Username: {{ patient.username }}</p>
+  <p>Email: {{ patient.email }}</p>
+  <p>Phone: {{ patient.phone }}</p>
+
+</div>
