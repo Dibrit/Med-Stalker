@@ -7,10 +7,15 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Appointment, Diagnosis, DoctorProfile, PatientProfile, Prescription
+from .models import Appointment, Diagnosis, DoctorProfile, Message, PatientProfile, Prescription
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+def _display_name_for_user(user) -> str:
+    full_name = user.get_full_name().strip()
+    return full_name or user.get_username()
 
 
 def _generate_medical_record_number() -> str:
@@ -197,7 +202,17 @@ class DiagnosisSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "patient", "recorded_by_id", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "patient",
+            "recorded_by_id",
+            "recorded_by_name",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_recorded_by_name(self, obj):
+        return _display_name_for_user(obj.recorded_by.user)
 
     def get_recorded_by_name(self, obj: Diagnosis) -> str:
         return obj.recorded_by.user.get_full_name() or obj.recorded_by.user.get_username()
@@ -245,7 +260,17 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "patient", "prescribed_by_id", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "patient",
+            "prescribed_by_id",
+            "prescribed_by_name",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_prescribed_by_name(self, obj):
+        return _display_name_for_user(obj.prescribed_by.user)
 
     def get_prescribed_by_name(self, obj: Prescription) -> str:
         return obj.prescribed_by.user.get_full_name() or obj.prescribed_by.user.get_username()
@@ -301,6 +326,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "status",
             "reason",
             "starts_at",
+            "ends_at",
             "created_at",
             "updated_at",
         )
@@ -315,6 +341,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         doctor = attrs.get("doctor", self.instance.doctor if self.instance else None)
         patient = self.instance.patient if self.instance else patient_profile
         starts_at = attrs.get("starts_at", self.instance.starts_at if self.instance else None)
+        ends_at = attrs.get("ends_at", self.instance.ends_at if self.instance else None)
         status_value = attrs.get(
             "status",
             self.instance.status if self.instance else Appointment.Status.REQUESTED,
@@ -359,13 +386,14 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 {"starts_at": "Appointment must be scheduled in the future."}
             )
 
-        if patient and doctor and starts_at:
+        if patient and doctor and starts_at and ends_at:
             candidate = Appointment(
                 patient=patient,
                 doctor=doctor,
                 status=status_value,
                 reason=attrs.get("reason", self.instance.reason if self.instance else ""),
                 starts_at=starts_at,
+                ends_at=ends_at,
             )
             if self.instance is not None:
                 candidate.pk = self.instance.pk
@@ -383,4 +411,75 @@ class AppointmentSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         validated_data["patient"] = request.user.patient_profile
         validated_data["status"] = Appointment.Status.REQUESTED
+        return super().create(validated_data)
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.SerializerMethodField()
+    recipient_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = (
+            "id",
+            "sender_type",
+            "sender_patient",
+            "sender_doctor",
+            "recipient_patient",
+            "recipient_doctor",
+            "sender_name",
+            "recipient_name",
+            "content",
+            "is_read",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "sender_type",
+            "sender_patient",
+            "sender_doctor",
+            "sender_name",
+            "recipient_name",
+            "is_read",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_sender_name(self, obj: Message) -> str:
+        if obj.sender_type == "patient" and obj.sender_patient:
+            return _display_name_for_user(obj.sender_patient.user)
+        if obj.sender_type == "doctor" and obj.sender_doctor:
+            return _display_name_for_user(obj.sender_doctor.user)
+        return "Unknown"
+
+    def get_recipient_name(self, obj: Message) -> str:
+        if obj.recipient_patient:
+            return _display_name_for_user(obj.recipient_patient.user)
+        if obj.recipient_doctor:
+            return _display_name_for_user(obj.recipient_doctor.user)
+        return "Unknown"
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        user = request.user
+
+        # Set sender based on user type
+        if hasattr(user, "patient_profile"):
+            validated_data["sender_type"] = "patient"
+            validated_data["sender_patient"] = user.patient_profile
+            # Ensure recipient_doctor is set and recipient_patient is not
+            if not validated_data.get("recipient_doctor"):
+                raise serializers.ValidationError("recipient_doctor is required when sending as patient.")
+            validated_data["recipient_patient"] = None
+        elif hasattr(user, "doctor_profile"):
+            validated_data["sender_type"] = "doctor"
+            validated_data["sender_doctor"] = user.doctor_profile
+            # Ensure recipient_patient is set and recipient_doctor is not
+            if not validated_data.get("recipient_patient"):
+                raise serializers.ValidationError("recipient_patient is required when sending as doctor.")
+            validated_data["recipient_doctor"] = None
+        else:
+            raise serializers.ValidationError("User must be a patient or doctor to send messages.")
+
         return super().create(validated_data)

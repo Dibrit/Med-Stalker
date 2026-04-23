@@ -1,9 +1,6 @@
-from datetime import time, timedelta
-
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import DateTimeField, ExpressionWrapper, F
 from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
@@ -167,10 +164,6 @@ class Appointment(models.Model):
         CANCELLED = "cancelled", _("Cancelled")
         COMPLETED = "completed", _("Completed")
 
-    WORKDAY_START = time(hour=8, minute=0)
-    WORKDAY_END = time(hour=18, minute=0)
-    DURATION = timedelta(hours=1)
-
     patient = models.ForeignKey(
         PatientProfile,
         on_delete=models.CASCADE,
@@ -191,6 +184,7 @@ class Appointment(models.Model):
         help_text=_("Optional description of symptoms or the reason for the visit."),
     )
     starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -209,44 +203,21 @@ class Appointment(models.Model):
     def clean(self):
         errors = {}
 
-        if self.starts_at:
-            local_end_dt = self.ends_at
-            local_start = self.starts_at
-            local_end = local_end_dt
-            if local_start.tzinfo is not None:
-                local_start = local_start.astimezone()
-            if local_end.tzinfo is not None:
-                local_end = local_end.astimezone()
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            errors["ends_at"] = _("Appointment end must be after its start.")
 
-            if local_start.date() != local_end.date():
-                errors["starts_at"] = _(
-                    "Appointment must start and end on the same workday."
-                )
-            else:
-                if local_start.weekday() > 4:
-                    errors["starts_at"] = _(
-                        "Appointments can only be scheduled Monday through Friday."
-                    )
-                if local_start.time() < self.WORKDAY_START:
-                    errors["starts_at"] = _("Appointment cannot start before 08:00.")
-                if local_end.time() > self.WORKDAY_END:
-                    errors["starts_at"] = _("Appointment must start early enough to end by 18:00.")
-
-        if self.patient_id and self.doctor_id and self.starts_at and self.status in self.blocking_statuses():
-            overlapping = (
-                Appointment.objects.annotate(
-                    ends_at_calc=ExpressionWrapper(
-                        F("starts_at") + self.DURATION,
-                        output_field=DateTimeField(),
-                    )
-                )
-                .filter(
-                    status__in=self.blocking_statuses(),
-                    starts_at__lt=self.ends_at,
-                    ends_at_calc__gt=self.starts_at,
-                )
-                .exclude(pk=self.pk)
-            )
+        if (
+            self.patient_id
+            and self.doctor_id
+            and self.starts_at
+            and self.ends_at
+            and self.status in self.blocking_statuses()
+        ):
+            overlapping = Appointment.objects.filter(
+                status__in=self.blocking_statuses(),
+                starts_at__lt=self.ends_at,
+                ends_at__gt=self.starts_at,
+            ).exclude(pk=self.pk)
             if overlapping.filter(doctor_id=self.doctor_id).exists():
                 errors["doctor"] = _(
                     "The selected doctor already has an appointment during that time."
@@ -263,11 +234,58 @@ class Appointment(models.Model):
         self.full_clean()
         return super().save(*args, **kwargs)
 
-    @property
-    def ends_at(self):
-        if self.starts_at is None:
-            return None
-        return self.starts_at + self.DURATION
-
     def __str__(self) -> str:
         return f"{self.patient} with {self.doctor} at {self.starts_at:%Y-%m-%d %H:%M}"
+
+
+class Message(models.Model):
+    """A message between a patient and a doctor."""
+
+    sender_type = models.CharField(
+        max_length=16,
+        choices=[("patient", _("Patient")), ("doctor", _("Doctor"))],
+    )
+    sender_patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="sent_messages_as_patient",
+    )
+    sender_doctor = models.ForeignKey(
+        DoctorProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="sent_messages_as_doctor",
+    )
+    recipient_patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="received_messages_as_patient",
+    )
+    recipient_doctor = models.ForeignKey(
+        DoctorProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="received_messages_as_doctor",
+    )
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        indexes = [
+            models.Index(fields=["sender_patient", "recipient_doctor", "-created_at"]),
+            models.Index(fields=["sender_doctor", "recipient_patient", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        sender = self.sender_patient or self.sender_doctor
+        recipient = self.recipient_patient or self.recipient_doctor
+        return f"Message from {sender} to {recipient}"

@@ -19,4 +19,6 @@ urlpatterns = [
     path("diagnoses/<int:pk>/", views.DiagnosisDetailView.as_view()),
     path("prescriptions/", views.PrescriptionListCreateView.as_view()),
     path("prescriptions/<int:pk>/", views.PrescriptionDetailView.as_view()),
+    path("messages/", views.MessageListCreateView.as_view()),
+    path("messages/<int:pk>/", views.MessageDetailView.as_view()),
 ]

@@ -339,6 +339,8 @@ class Command(BaseCommand):
                 second=0,
                 microsecond=0,
             )
+            ends_at = starts_at + timedelta(minutes=rng.choice([30, 45, 60]))
+
             try:
                 Appointment.objects.create(
                     patient=patient,
@@ -346,6 +348,7 @@ class Command(BaseCommand):
                     status=status,
                     reason=_pick(rng, APPOINTMENT_REASONS),
                     starts_at=starts_at,
+                    ends_at=ends_at,
                 )
             except ValidationError:
                 continue

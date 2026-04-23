@@ -43,16 +43,12 @@ class AppointmentInline(admin.TabularInline):
     extra = 0
     can_delete = False
     show_change_link = True
-    fields = ("doctor", "status", "starts_at", "appointment_end", "reason")
+    fields = ("doctor", "status", "starts_at", "ends_at", "reason")
     readonly_fields = fields
     ordering = ("starts_at",)
 
     def has_add_permission(self, request, obj=None):
         return False
-
-    @admin.display(description="Ends at")
-    def appointment_end(self, obj: Appointment):
-        return obj.ends_at
 
 
 class RecordedDiagnosisInline(admin.TabularInline):
@@ -81,16 +77,12 @@ class DoctorAppointmentInline(admin.TabularInline):
     extra = 0
     can_delete = False
     show_change_link = True
-    fields = ("patient", "status", "starts_at", "appointment_end", "reason")
+    fields = ("patient", "status", "starts_at", "ends_at", "reason")
     readonly_fields = fields
     ordering = ("starts_at",)
 
     def has_add_permission(self, request, obj=None):
         return False
-
-    @admin.display(description="Ends at")
-    def appointment_end(self, obj: Appointment):
-        return obj.ends_at
 
 
 class PrescriptionForDiagnosisInline(admin.TabularInline):
@@ -224,7 +216,7 @@ class PrescriptionAdmin(admin.ModelAdmin):
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ("starts_at", "appointment_end", "status", "patient", "doctor")
+    list_display = ("starts_at", "ends_at", "status", "patient", "doctor")
     list_filter = (
         "status",
         "starts_at",
@@ -236,16 +228,12 @@ class AppointmentAdmin(admin.ModelAdmin):
         "doctor__user__username",
     )
     autocomplete_fields = ("patient", "doctor")
-    readonly_fields = ("appointment_end", "created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
     date_hierarchy = "starts_at"
     list_select_related = ("patient", "patient__user", "doctor", "doctor__user")
     ordering = ("starts_at", "pk")
     fieldsets = (
         (None, {"fields": ("patient", "doctor", "status")}),
-        ("Schedule", {"fields": ("starts_at", "appointment_end", "reason")}),
+        ("Schedule", {"fields": ("starts_at", "ends_at", "reason")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
-
-    @admin.display(description="Ends at")
-    def appointment_end(self, obj: Appointment):
-        return obj.ends_at
