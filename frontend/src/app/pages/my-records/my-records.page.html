@@ -1,0 +1,109 @@
+<section class="page">
+  <div class="page__hd">
+    <h1>My records</h1>
+    <p class="sub">Read-only view of your profile, diagnoses, and prescriptions.</p>
+  </div>
+
+  <div class="alert alert--error" *ngIf="error">{{ error }}</div>
+
+  <div class="panel" *ngIf="loading">
+    <div class="panel__bd">Loading…</div>
+  </div>
+
+  <div *ngIf="!loading && !error">
+    <div class="panel" *ngIf="me; else emptyMe">
+      <div class="panel__hd"><strong>Profile</strong></div>
+      <div class="panel__bd">
+        <div class="kv">
+          <div class="k">Name</div>
+          <div class="v">{{ me!.first_name }} {{ me!.last_name }}</div>
+        </div>
+        <div class="kv">
+          <div class="k">Username</div>
+          <div class="v mono">{{ me!.username }}</div>
+        </div>
+        <div class="kv">
+          <div class="k">Email</div>
+          <div class="v">{{ me!.email }}</div>
+        </div>
+        <div class="kv">
+          <div class="k">Date of birth</div>
+          <div class="v mono">{{ me!.date_of_birth || '—' }}</div>
+        </div>
+        <div class="kv">
+          <div class="k">Phone</div>
+          <div class="v mono">{{ me!.phone || '—' }}</div>
+        </div>
+        <div class="kv">
+          <div class="k">MRN</div>
+          <div class="v mono">{{ me!.medical_record_number }}</div>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #emptyMe>
+      <div class="panel">
+        <div class="panel__bd">No profile data available.</div>
+      </div>
+    </ng-template>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panel__hd">
+          <a class="section-link" routerLink="/diagnoses">Diagnoses</a>
+        </div>
+        <div class="panel__bd" *ngIf="diagnoses.length === 0">No diagnoses.</div>
+        <div class="panel__bd" style="padding: 0" *ngIf="diagnoses.length > 0">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>ICD</th>
+                <th>Status</th>
+                <th>Diagnosed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of diagnoses">
+                <td>
+                  <div class="strong">{{ d.title }}</div>
+                  <div class="muted" *ngIf="d.description">{{ d.description }}</div>
+                </td>
+                <td class="mono">{{ d.icd_code || '—' }}</td>
+                <td>{{ d.status || '—' }}</td>
+                <td class="mono">{{ d.diagnosed_at | date: 'medium' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__hd">
+          <a class="section-link" routerLink="/prescriptions">Prescriptions</a>
+        </div>
+        <div class="panel__bd" *ngIf="prescriptions.length === 0">No prescriptions.</div>
+        <div class="panel__bd" style="padding: 0" *ngIf="prescriptions.length > 0">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Medication</th>
+                <th>Instructions</th>
+                <th>Issued</th>
+                <th>Valid until</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of prescriptions">
+                <td class="strong">{{ p.medication_name || '—' }}</td>
+                <td>{{ p.instructions }}</td>
+                <td class="mono">{{ p.issued_at | date: 'medium' }}</td>
+                <td class="mono">{{ p.valid_until || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

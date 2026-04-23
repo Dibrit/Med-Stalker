@@ -1,31 +1,59 @@
 import { Routes } from '@angular/router';
-
-import { LoginComponent } from './features/auth/login/login';
-import { PatientListComponent } from './features/patients/patient-list/patient-list';
-import { PatientDetailComponent } from './features/patients/patient-detail/patient-detail';
-
-import { DiagnosisListComponent } from './features/diagnoses/diagnosis-list/diagnosis-list';
-import { DiagnosisFormComponent } from './features/diagnoses/diagnosis-form/diagnosis-form';
-
-import { PrescriptionListComponent } from './features/prescriptions/prescription-list/prescription-list';
-import { PrescriptionFormComponent } from './features/prescriptions/prescription-form/prescription-form';
-import { MyRecordsComponent } from './features/patients/my-records/my-records';
-
-import { authGuard } from './core/guards/auth-guard';
-import { roleGuard } from './core/guards/role-guard';
+import { authGuard } from './core/auth/auth.guard';
+import { doctorGuard } from './core/session/doctor.guard';
 
 export const routes: Routes = [
-
-  {path: 'login',component: LoginComponent},
-  {path: 'patients',component: PatientListComponent,canActivate: [authGuard, roleGuard('doctor')]},
-  {path: 'patients/:id',component: PatientDetailComponent,canActivate: [authGuard, roleGuard('doctor')]},
-   {path: 'diagnoses',component: DiagnosisListComponent,canActivate: [authGuard, roleGuard('doctor')]},
-   {path: 'diagnoses/new',component: DiagnosisFormComponent,canActivate: [authGuard, roleGuard('doctor')]},
-  {path: 'prescriptions',component: PrescriptionListComponent,canActivate: [authGuard, roleGuard('doctor')]},
-  {path: 'prescriptions/new',component: PrescriptionFormComponent,canActivate: [authGuard, roleGuard('doctor')]},
   {
-  path: 'my-records',
-  component: MyRecordsComponent,
-  canActivate: [authGuard, roleGuard('patient')]
-}
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'dashboard'
+  },
+  {
+    path: 'login',
+    loadComponent: () => import('./pages/auth/login.page').then((m) => m.LoginPage)
+  },
+  {
+    path: 'dashboard',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/dashboard/dashboard.page').then((m) => m.DashboardPage)
+  },
+  {
+    path: 'diagnoses',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/diagnoses/diagnoses.page').then((m) => m.DiagnosesPage)
+  },
+  {
+    path: 'prescriptions',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/prescriptions/prescriptions.page').then((m) => m.PrescriptionsPage)
+  },
+  {
+    path: 'patients',
+    canActivate: [authGuard, doctorGuard],
+    loadComponent: () => import('./pages/patients/patients.page').then((m) => m.PatientsPage)
+  },
+  {
+    path: 'patients/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/patients/patient-detail.page').then((m) => m.PatientDetailPage)
+  },
+  {
+    path: 'my-records',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/my-records/my-records.page').then((m) => m.MyRecordsPage)
+  },
+  {
+    path: 'book-appointment',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/book-appointment/book-appointment.page').then((m) => m.BookAppointmentPage)
+  },
+  {
+    path: 'chat',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/chat/chat.page').then((m) => m.ChatPage)
+  },
+  {
+    path: '**',
+    redirectTo: 'dashboard'
+  }
 ];
