@@ -10,13 +10,17 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Diagnosis, PatientProfile, Prescription
-from .permissions import IsDoctor, IsDoctorOrPatient
+from .models import Appointment, Diagnosis, DoctorProfile, Message, PatientProfile, Prescription
+from .permissions import IsDoctor, IsDoctorOrPatient, IsPatient
 from .serializers import (
+    AppointmentSerializer,
     DiagnosisSerializer,
+    DoctorSerializer,
     LoginSerializer,
     LogoutSerializer,
+    MessageSerializer,
     PatientSerializer,
+    PatientRegistrationSerializer,
     PrescriptionSerializer,
 )
 
@@ -64,8 +68,30 @@ def auth_logout(request):
     return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
 
 
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def auth_register(request):
+    serializer = PatientRegistrationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    patient = serializer.save()
+    refresh = RefreshToken.for_user(patient.user)
+    logger.info(
+        "Patient registration succeeded user_id=%s patient_id=%s",
+        patient.user_id,
+        patient.pk,
+    )
+    return Response(
+        {
+            "patient": PatientSerializer(patient).data,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
 def _diagnosis_queryset_for_user(user):
-    # Small helper so we don't repeat "doctor sees all / patient sees own" logic.
+    # Doctors only see diagnoses they recorded; patients see diagnoses from their own chart.
     qs = Diagnosis.objects.select_related(
         "patient",
         "patient__user",
@@ -73,7 +99,7 @@ def _diagnosis_queryset_for_user(user):
         "recorded_by__user",
     )
     if getattr(user, "doctor_profile", None):
-        return qs.all()
+        return qs.filter(recorded_by=user.doctor_profile)
     if getattr(user, "patient_profile", None):
         return qs.filter(patient=user.patient_profile)
     return qs.none()
@@ -183,11 +209,17 @@ class PatientDetailView(generics.RetrieveAPIView):
         return PatientProfile.objects.none()
 
 
+class DoctorListView(generics.ListAPIView):
+    serializer_class = DoctorSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrPatient]
+    queryset = DoctorProfile.objects.select_related("user").all()
+
+
 def _prescription_queryset_for_user(user):
-    # Same access pattern as diagnoses.
+    # Doctors only see prescriptions they wrote; patients see prescriptions from their own chart.
     related = ("patient", "patient__user", "diagnosis", "prescribed_by", "prescribed_by__user")
     if getattr(user, "doctor_profile", None):
-        return Prescription.objects.select_related(*related)
+        return Prescription.objects.select_related(*related).filter(prescribed_by=user.doctor_profile)
     if getattr(user, "patient_profile", None):
         return Prescription.objects.filter(patient=user.patient_profile).select_related(*related)
     return Prescription.objects.none()
@@ -247,4 +279,104 @@ class PrescriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
             prescription_id,
             patient_id,
             user_id,
+        )
+
+
+def _appointment_queryset_for_user(user):
+    related = ("patient", "patient__user", "doctor", "doctor__user")
+    if getattr(user, "doctor_profile", None):
+        return Appointment.objects.select_related(*related).filter(doctor=user.doctor_profile)
+    if getattr(user, "patient_profile", None):
+        return Appointment.objects.select_related(*related).filter(patient=user.patient_profile)
+    return Appointment.objects.none()
+
+
+class AppointmentListCreateView(generics.ListCreateAPIView):
+    serializer_class = AppointmentSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrPatient]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated(), IsPatient()]
+        return super().get_permissions()
+
+    def get_queryset(self):
+        return _appointment_queryset_for_user(self.request.user)
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        logger.info(
+            "Appointment created id=%s patient_id=%s doctor_id=%s by user_id=%s",
+            instance.pk,
+            instance.patient_id,
+            instance.doctor_id,
+            self.request.user.pk,
+        )
+
+
+class AppointmentDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = AppointmentSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrPatient]
+    lookup_field = "pk"
+
+    def get_queryset(self):
+        return _appointment_queryset_for_user(self.request.user)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        logger.info(
+            "Appointment updated id=%s status=%s by user_id=%s",
+            instance.pk,
+            instance.status,
+            self.request.user.pk,
+        )
+
+
+def _message_queryset_for_user(user):
+    # Get messages where the user is sender or recipient
+    if getattr(user, "patient_profile", None):
+        from django.db.models import Q
+        return Message.objects.filter(
+            Q(sender_patient=user.patient_profile) | Q(recipient_patient=user.patient_profile)
+        ).select_related("sender_patient", "sender_patient__user", "sender_doctor", "sender_doctor__user",
+                         "recipient_patient", "recipient_patient__user", "recipient_doctor", "recipient_doctor__user")
+    if getattr(user, "doctor_profile", None):
+        from django.db.models import Q
+        return Message.objects.filter(
+            Q(sender_doctor=user.doctor_profile) | Q(recipient_doctor=user.doctor_profile)
+        ).select_related("sender_patient", "sender_patient__user", "sender_doctor", "sender_doctor__user",
+                         "recipient_patient", "recipient_patient__user", "recipient_doctor", "recipient_doctor__user")
+    return Message.objects.none()
+
+
+class MessageListCreateView(generics.ListCreateAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrPatient]
+
+    def get_queryset(self):
+        return _message_queryset_for_user(self.request.user).order_by("-created_at")
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        logger.info(
+            "Message created id=%s from user_id=%s",
+            instance.pk,
+            self.request.user.pk,
+        )
+
+
+class MessageDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrPatient]
+    lookup_field = "pk"
+
+    def get_queryset(self):
+        return _message_queryset_for_user(self.request.user)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        logger.info(
+            "Message updated id=%s by user_id=%s",
+            instance.pk,
+            self.request.user.pk,
         )

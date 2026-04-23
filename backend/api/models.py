@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -152,3 +153,139 @@ class Prescription(models.Model):
     def __str__(self) -> str:
         label = self.medication_name or _("Recommendation")
         return f"{label} → {self.patient}"
+
+
+class Appointment(models.Model):
+    """A booked visit between a patient and a doctor."""
+
+    class Status(models.TextChoices):
+        REQUESTED = "requested", _("Requested")
+        CONFIRMED = "confirmed", _("Confirmed")
+        CANCELLED = "cancelled", _("Cancelled")
+        COMPLETED = "completed", _("Completed")
+
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        related_name="appointments",
+    )
+    doctor = models.ForeignKey(
+        DoctorProfile,
+        on_delete=models.PROTECT,
+        related_name="appointments",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.REQUESTED,
+    )
+    reason = models.TextField(
+        blank=True,
+        help_text=_("Optional description of symptoms or the reason for the visit."),
+    )
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["starts_at", "pk"]
+        indexes = [
+            models.Index(fields=["doctor", "starts_at"]),
+            models.Index(fields=["patient", "starts_at"]),
+            models.Index(fields=["status", "starts_at"]),
+        ]
+
+    @classmethod
+    def blocking_statuses(cls) -> tuple[str, str]:
+        return (cls.Status.REQUESTED, cls.Status.CONFIRMED)
+
+    def clean(self):
+        errors = {}
+
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            errors["ends_at"] = _("Appointment end must be after its start.")
+
+        if (
+            self.patient_id
+            and self.doctor_id
+            and self.starts_at
+            and self.ends_at
+            and self.status in self.blocking_statuses()
+        ):
+            overlapping = Appointment.objects.filter(
+                status__in=self.blocking_statuses(),
+                starts_at__lt=self.ends_at,
+                ends_at__gt=self.starts_at,
+            ).exclude(pk=self.pk)
+            if overlapping.filter(doctor_id=self.doctor_id).exists():
+                errors["doctor"] = _(
+                    "The selected doctor already has an appointment during that time."
+                )
+            if overlapping.filter(patient_id=self.patient_id).exists():
+                errors["patient"] = _(
+                    "The patient already has an appointment during that time."
+                )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.patient} with {self.doctor} at {self.starts_at:%Y-%m-%d %H:%M}"
+
+
+class Message(models.Model):
+    """A message between a patient and a doctor."""
+
+    sender_type = models.CharField(
+        max_length=16,
+        choices=[("patient", _("Patient")), ("doctor", _("Doctor"))],
+    )
+    sender_patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="sent_messages_as_patient",
+    )
+    sender_doctor = models.ForeignKey(
+        DoctorProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="sent_messages_as_doctor",
+    )
+    recipient_patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="received_messages_as_patient",
+    )
+    recipient_doctor = models.ForeignKey(
+        DoctorProfile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="received_messages_as_doctor",
+    )
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        indexes = [
+            models.Index(fields=["sender_patient", "recipient_doctor", "-created_at"]),
+            models.Index(fields=["sender_doctor", "recipient_patient", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        sender = self.sender_patient or self.sender_doctor
+        recipient = self.recipient_patient or self.recipient_doctor
+        return f"Message from {sender} to {recipient}"

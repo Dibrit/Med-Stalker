@@ -4,11 +4,12 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from faker import Faker
 
-from api.models import Diagnosis, DoctorProfile, PatientProfile, Prescription
+from api.models import Appointment, Diagnosis, DoctorProfile, PatientProfile, Prescription
 
 
 User = get_user_model()
@@ -79,6 +80,16 @@ INSTRUCTIONS = [
     "Return for follow-up in 2 weeks or sooner if symptoms worsen.",
 ]
 
+APPOINTMENT_REASONS = [
+    "Routine follow-up visit.",
+    "Persistent cough and sore throat.",
+    "Medication review and refill discussion.",
+    "Blood pressure check after home monitoring.",
+    "Migraine symptoms getting worse.",
+    "General wellness consultation.",
+    "Skin rash that has not improved.",
+]
+
 
 class Command(BaseCommand):
     help = "Seed the local dev database with realistic-looking demo data."
@@ -89,6 +100,7 @@ class Command(BaseCommand):
         parser.add_argument("--patients", type=int, default=30, help="Number of patients to create.")
         parser.add_argument("--diagnoses", type=int, default=120, help="Number of diagnoses to create.")
         parser.add_argument("--prescriptions", type=int, default=120, help="Number of prescriptions to create.")
+        parser.add_argument("--appointments", type=int, default=80, help="Number of appointments to create.")
         parser.add_argument(
             "--password",
             type=str,
@@ -115,6 +127,7 @@ class Command(BaseCommand):
         n_patients: int = max(0, int(options["patients"]))
         n_diagnoses: int = max(0, int(options["diagnoses"]))
         n_prescriptions: int = max(0, int(options["prescriptions"]))
+        n_appointments: int = max(0, int(options["appointments"]))
 
         doctors = self._ensure_doctors(fake=fake, rng=rng, prefix=prefix, password=password, n=n_doctors)
         patients = self._ensure_patients(fake=fake, rng=rng, prefix=prefix, password=password, n=n_patients)
@@ -123,6 +136,8 @@ class Command(BaseCommand):
             self._create_diagnoses(fake=fake, rng=rng, doctors=doctors, patients=patients, n=n_diagnoses)
         if doctors and patients and n_prescriptions:
             self._create_prescriptions(rng=rng, doctors=doctors, patients=patients, n=n_prescriptions)
+        if doctors and patients and n_appointments:
+            self._create_appointments(rng=rng, doctors=doctors, patients=patients, n=n_appointments)
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -285,3 +300,59 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Prescriptions created: {created}")
 
+    def _create_appointments(
+        self,
+        *,
+        rng: random.Random,
+        doctors: list[DoctorProfile],
+        patients: list[PatientProfile],
+        n: int,
+    ):
+        now = timezone.now()
+        statuses = [
+            Appointment.Status.REQUESTED,
+            Appointment.Status.CONFIRMED,
+            Appointment.Status.CANCELLED,
+            Appointment.Status.COMPLETED,
+        ]
+
+        created = 0
+        attempts = 0
+        max_attempts = max(n * 20, 20)
+
+        while created < n and attempts < max_attempts:
+            attempts += 1
+            doctor = doctors[rng.randrange(0, len(doctors))]
+            patient = patients[rng.randrange(0, len(patients))]
+            status = statuses[rng.randrange(0, len(statuses))]
+
+            if status == Appointment.Status.COMPLETED:
+                day_offset = -rng.randint(1, 180)
+            elif status == Appointment.Status.CANCELLED and rng.random() < 0.5:
+                day_offset = -rng.randint(1, 60)
+            else:
+                day_offset = rng.randint(1, 90)
+
+            starts_at = (now + timedelta(days=day_offset)).replace(
+                hour=rng.randint(8, 17),
+                minute=rng.choice([0, 30]),
+                second=0,
+                microsecond=0,
+            )
+            ends_at = starts_at + timedelta(minutes=rng.choice([30, 45, 60]))
+
+            try:
+                Appointment.objects.create(
+                    patient=patient,
+                    doctor=doctor,
+                    status=status,
+                    reason=_pick(rng, APPOINTMENT_REASONS),
+                    starts_at=starts_at,
+                    ends_at=ends_at,
+                )
+            except ValidationError:
+                continue
+
+            created += 1
+
+        self.stdout.write(f"Appointments created: {created}")

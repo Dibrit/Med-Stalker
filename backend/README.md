@@ -6,8 +6,11 @@ The backend must provide a REST API for the frontend and store all medical data.
 The system should support:
 
 - doctor and patient users
+- patient self-registration
 - login and logout with JWT
 - patient data access
+- doctor directory access
+- appointment booking and management
 - diagnosis management
 - prescription/recommendation management
 - role-based access control
@@ -22,6 +25,7 @@ Create at least **4 models**.
 Recommended models:
 - `DoctorProfile`
 - `PatientProfile`
+- `Appointment`
 - `Diagnosis`
 - `Prescription`
 
@@ -36,11 +40,14 @@ Requirements:
 Implement **JWT-based authentication**.
 
 Required endpoints:
+- `POST /api/auth/register/`
 - `POST /api/auth/login/`
 - `POST /api/auth/logout/`
 - `POST /api/auth/refresh/`
 
 Behavior:
+- registration creates a regular Django `User` plus a `PatientProfile`
+- only patients can self-register; doctors are created manually through Django admin
 - login returns access and refresh tokens
 - logout invalidates the refresh token
 - protected endpoints require JWT in the `Authorization` header
@@ -52,13 +59,24 @@ Implement REST endpoints for the main entities.
 
 Minimum required functionality:
 - list patients
+- list doctors for patient booking
 - get patient details
 - full CRUD for at least **one model**
 - recommended CRUD target: `Diagnosis`
+- let patients create appointments by selecting a doctor
 - create prescriptions/recommendations for patients
 
 When creating medical records:
 - link created objects to the authenticated user with `request.user`
+
+Access model implemented in this repo:
+- doctors and patients can list doctors
+- doctors can list **all patients**
+- doctors can list/retrieve/update appointments assigned to their own `DoctorProfile`
+- doctors can only list/retrieve/update/delete diagnoses that were recorded by their own `DoctorProfile`
+- doctors can only list/retrieve/update/delete prescriptions that were written by their own `DoctorProfile`
+- patients can list/retrieve/update their own appointments and create new appointments
+- patients can only view their own patient profile, diagnoses, and prescriptions
 
 ---
 
@@ -70,6 +88,8 @@ Required:
 Recommended:
 - `LoginSerializer`
 - `LogoutSerializer`
+- `DoctorSerializer`
+- `AppointmentSerializer`
 - `DiagnosisSerializer`
 - `PrescriptionSerializer`
 
@@ -134,7 +154,7 @@ Common targets:
 make sync          # install/update dependencies into .venv (uses uv.lock)
 make migrate       # apply migrations
 make run           # start API on 0.0.0.0:8000
-make test          # run tests
+make test          # run tests with per-test pass/fail output
 ```
 
 If you don’t have `make` installed, you can run the equivalent `uv …` commands shown below.
@@ -197,8 +217,10 @@ uv run python manage.py migrate         # or: make migrate
 ### Run tests
 
 ```bash
-uv run python manage.py test   # or: make test
+uv run python manage.py test -v 2   # or: make test
 ```
+
+`-v 2` tells Django to print each test name/description so you can see which tests passed before any failure stops the run.
 
 ### Seed realistic demo data (local dev)
 
@@ -211,7 +233,7 @@ make seed
 You can customize counts and keep the output reproducible:
 
 ```bash
-uv run python manage.py seed_dev_data --seed 42 --doctors 5 --patients 30 --diagnoses 120 --prescriptions 120
+uv run python manage.py seed_dev_data --seed 42 --doctors 5 --patients 30 --diagnoses 120 --prescriptions 120 --appointments 80
 ```
 
 Created users are named like `demo_doctor_001` / `demo_patient_001` (override with `--prefix`) and all share the same dev password (override with `--password`).
