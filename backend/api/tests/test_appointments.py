@@ -30,22 +30,20 @@ class AppointmentListCreateTests(APITestCase):
         )
         while starts_at.weekday() > 4:
             starts_at += timedelta(days=1)
-        return starts_at, starts_at + timedelta(minutes=45)
+        return starts_at
 
     def test_patient_lists_only_own_appointments(self):
         """Patients only see appointments booked for their own profile."""
-        starts_at, ends_at = self._slot(days=2, hour=10)
+        starts_at = self._slot(days=2, hour=10)
         create_appointment(
             patient=self.patient.patient_profile,
             doctor=self.doctor.doctor_profile,
             starts_at=starts_at,
-            ends_at=ends_at,
         )
         create_appointment(
             patient=self.other_patient.patient_profile,
             doctor=self.doctor.doctor_profile,
             starts_at=starts_at + timedelta(hours=2),
-            ends_at=ends_at + timedelta(hours=2),
         )
 
         response = self.client.get("/api/appointments/", **self._auth(self.patient))
@@ -55,18 +53,16 @@ class AppointmentListCreateTests(APITestCase):
 
     def test_doctor_lists_only_assigned_appointments(self):
         """Doctors only see appointments assigned to their own doctor profile."""
-        starts_at, ends_at = self._slot(days=3, hour=11)
+        starts_at = self._slot(days=3, hour=11)
         create_appointment(
             patient=self.patient.patient_profile,
             doctor=self.doctor.doctor_profile,
             starts_at=starts_at,
-            ends_at=ends_at,
         )
         create_appointment(
             patient=self.patient.patient_profile,
             doctor=self.other_doctor.doctor_profile,
             starts_at=starts_at + timedelta(hours=2),
-            ends_at=ends_at + timedelta(hours=2),
         )
 
         response = self.client.get("/api/appointments/", **self._auth(self.doctor))
@@ -76,12 +72,11 @@ class AppointmentListCreateTests(APITestCase):
 
     def test_patient_can_create_appointment_with_selected_doctor(self):
         """Patients can book an appointment by choosing a doctor id."""
-        starts_at, ends_at = self._slot(days=4, hour=9)
+        starts_at = self._slot(days=4, hour=9)
         payload = {
             "doctor_id": self.doctor.doctor_profile.pk,
             "reason": "Recurring headaches",
             "starts_at": starts_at.isoformat(),
-            "ends_at": ends_at.isoformat(),
         }
 
         response = self.client.post(
@@ -98,11 +93,10 @@ class AppointmentListCreateTests(APITestCase):
 
     def test_doctor_cannot_create_appointment(self):
         """Only patients can book appointments through the API."""
-        starts_at, ends_at = self._slot(days=5, hour=14)
+        starts_at = self._slot(days=5, hour=14)
         payload = {
             "doctor_id": self.other_doctor.doctor_profile.pk,
             "starts_at": starts_at.isoformat(),
-            "ends_at": ends_at.isoformat(),
         }
 
         response = self.client.post(
@@ -120,7 +114,6 @@ class AppointmentListCreateTests(APITestCase):
         payload = {
             "doctor_id": self.doctor.doctor_profile.pk,
             "starts_at": starts_at.isoformat(),
-            "ends_at": (starts_at + timedelta(minutes=45)).isoformat(),
         }
 
         response = self.client.post(
@@ -133,13 +126,12 @@ class AppointmentListCreateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("starts_at", response.data)
 
-    def test_create_rejects_end_before_start(self):
-        """Appointments must have an end time after the start time."""
-        starts_at, _ = self._slot(days=6, hour=15)
+    def test_create_rejects_start_that_would_end_after_business_hours(self):
+        """Start times must allow a fixed one-hour appointment to finish by 18:00."""
+        starts_at = self._slot(days=6, hour=17).replace(minute=30)
         payload = {
             "doctor_id": self.doctor.doctor_profile.pk,
             "starts_at": starts_at.isoformat(),
-            "ends_at": (starts_at - timedelta(minutes=15)).isoformat(),
         }
 
         response = self.client.post(
@@ -150,21 +142,19 @@ class AppointmentListCreateTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("ends_at", response.data)
+        self.assertIn("starts_at", response.data)
 
     def test_create_rejects_doctor_time_conflict(self):
         """A patient cannot book a doctor into an overlapping active time slot."""
-        starts_at, ends_at = self._slot(days=7, hour=10)
+        starts_at = self._slot(days=7, hour=10)
         create_appointment(
             patient=self.other_patient.patient_profile,
             doctor=self.doctor.doctor_profile,
             starts_at=starts_at,
-            ends_at=ends_at,
         )
         payload = {
             "doctor_id": self.doctor.doctor_profile.pk,
             "starts_at": (starts_at + timedelta(minutes=15)).isoformat(),
-            "ends_at": (ends_at + timedelta(minutes=15)).isoformat(),
         }
 
         response = self.client.post(
@@ -179,17 +169,15 @@ class AppointmentListCreateTests(APITestCase):
 
     def test_create_rejects_patient_time_conflict(self):
         """A patient cannot create overlapping active appointments for themselves."""
-        starts_at, ends_at = self._slot(days=8, hour=9)
+        starts_at = self._slot(days=8, hour=9)
         create_appointment(
             patient=self.patient.patient_profile,
             doctor=self.doctor.doctor_profile,
             starts_at=starts_at,
-            ends_at=ends_at,
         )
         payload = {
             "doctor_id": self.other_doctor.doctor_profile.pk,
             "starts_at": (starts_at + timedelta(minutes=10)).isoformat(),
-            "ends_at": (ends_at + timedelta(minutes=10)).isoformat(),
         }
 
         response = self.client.post(
@@ -204,12 +192,11 @@ class AppointmentListCreateTests(APITestCase):
 
     def test_create_rejects_non_requested_initial_status(self):
         """Clients cannot skip straight to confirmed or completed on create."""
-        starts_at, ends_at = self._slot(days=9, hour=13)
+        starts_at = self._slot(days=9, hour=13)
         payload = {
             "doctor_id": self.doctor.doctor_profile.pk,
             "status": Appointment.Status.CONFIRMED,
             "starts_at": starts_at.isoformat(),
-            "ends_at": ends_at.isoformat(),
         }
 
         response = self.client.post(
@@ -231,7 +218,6 @@ class AppointmentListCreateTests(APITestCase):
         payload = {
             "doctor_id": self.doctor.doctor_profile.pk,
             "starts_at": starts_at.isoformat(),
-            "ends_at": (starts_at + timedelta(minutes=45)).isoformat(),
         }
 
         response = self.client.post(
@@ -250,7 +236,6 @@ class AppointmentListCreateTests(APITestCase):
         payload = {
             "doctor_id": self.doctor.doctor_profile.pk,
             "starts_at": starts_at.isoformat(),
-            "ends_at": (starts_at + timedelta(minutes=45)).isoformat(),
         }
 
         response = self.client.post(
@@ -283,7 +268,6 @@ class AppointmentDetailTests(APITestCase):
             doctor=self.doctor.doctor_profile,
             status=Appointment.Status.REQUESTED,
             starts_at=starts_at,
-            ends_at=starts_at + timedelta(minutes=45),
         )
 
     def _auth(self, user):
@@ -381,7 +365,6 @@ class AppointmentDetailTests(APITestCase):
             doctor=self.doctor.doctor_profile,
             status=Appointment.Status.CONFIRMED,
             starts_at=starts_at,
-            ends_at=starts_at + timedelta(minutes=45),
         )
 
         url = f"/api/appointments/{appointment.pk}/"

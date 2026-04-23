@@ -301,7 +301,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "status",
             "reason",
             "starts_at",
-            "ends_at",
             "created_at",
             "updated_at",
         )
@@ -316,7 +315,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
         doctor = attrs.get("doctor", self.instance.doctor if self.instance else None)
         patient = self.instance.patient if self.instance else patient_profile
         starts_at = attrs.get("starts_at", self.instance.starts_at if self.instance else None)
-        ends_at = attrs.get("ends_at", self.instance.ends_at if self.instance else None)
         status_value = attrs.get(
             "status",
             self.instance.status if self.instance else Appointment.Status.REQUESTED,
@@ -361,14 +359,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 {"starts_at": "Appointment must be scheduled in the future."}
             )
 
-        if patient and doctor and starts_at and ends_at:
+        if patient and doctor and starts_at:
             candidate = Appointment(
                 patient=patient,
                 doctor=doctor,
                 status=status_value,
                 reason=attrs.get("reason", self.instance.reason if self.instance else ""),
                 starts_at=starts_at,
-                ends_at=ends_at,
             )
             if self.instance is not None:
                 candidate.pk = self.instance.pk
