@@ -28,6 +28,8 @@ class AppointmentListCreateTests(APITestCase):
             second=0,
             microsecond=0,
         )
+        while starts_at.weekday() > 4:
+            starts_at += timedelta(days=1)
         return starts_at, starts_at + timedelta(minutes=45)
 
     def test_patient_lists_only_own_appointments(self):
@@ -220,6 +222,47 @@ class AppointmentListCreateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("status", response.data)
 
+    def test_create_rejects_weekend_time(self):
+        """Appointments can only be booked on workdays."""
+        starts_at = timezone.now() + timedelta(days=1)
+        while starts_at.weekday() != 5:
+            starts_at += timedelta(days=1)
+        starts_at = starts_at.replace(hour=10, minute=0, second=0, microsecond=0)
+        payload = {
+            "doctor_id": self.doctor.doctor_profile.pk,
+            "starts_at": starts_at.isoformat(),
+            "ends_at": (starts_at + timedelta(minutes=45)).isoformat(),
+        }
+
+        response = self.client.post(
+            "/api/appointments/",
+            payload,
+            format="json",
+            **self._auth(self.patient),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("starts_at", response.data)
+
+    def test_create_rejects_outside_business_hours(self):
+        """Appointments must stay inside the 08:00-18:00 window."""
+        starts_at, _ = self._slot(days=10, hour=7)
+        payload = {
+            "doctor_id": self.doctor.doctor_profile.pk,
+            "starts_at": starts_at.isoformat(),
+            "ends_at": (starts_at + timedelta(minutes=45)).isoformat(),
+        }
+
+        response = self.client.post(
+            "/api/appointments/",
+            payload,
+            format="json",
+            **self._auth(self.patient),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("starts_at", response.data)
+
 
 class AppointmentDetailTests(APITestCase):
     def setUp(self):
@@ -233,6 +276,8 @@ class AppointmentDetailTests(APITestCase):
             second=0,
             microsecond=0,
         )
+        while starts_at.weekday() > 4:
+            starts_at += timedelta(days=1)
         self.appointment = create_appointment(
             patient=self.patient.patient_profile,
             doctor=self.doctor.doctor_profile,
@@ -323,7 +368,14 @@ class AppointmentDetailTests(APITestCase):
 
     def test_doctor_can_complete_past_appointment(self):
         """Doctors can mark a past appointment completed without resubmitting its schedule."""
-        starts_at = timezone.now() - timedelta(days=1, hours=2)
+        starts_at = (timezone.now() - timedelta(days=1)).replace(
+            hour=10,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        while starts_at.weekday() > 4:
+            starts_at -= timedelta(days=1)
         appointment = create_appointment(
             patient=self.patient.patient_profile,
             doctor=self.doctor.doctor_profile,

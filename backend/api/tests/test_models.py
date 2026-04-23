@@ -37,9 +37,20 @@ class AppointmentValidationTests(TestCase):
         self.patient = create_patient_user(username="appt_pat", password="pw")
         self.other_patient = create_patient_user(username="appt_pat_two", password="pw")
 
+    def _workday_slot(self, *, days=1, hour=10):
+        starts_at = (timezone.now() + timedelta(days=days)).replace(
+            hour=hour,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        while starts_at.weekday() > 4:
+            starts_at += timedelta(days=1)
+        return starts_at
+
     def test_requested_appointments_cannot_overlap_for_same_doctor(self):
         """Appointment model validation blocks overlapping active bookings for one doctor."""
-        starts_at = timezone.now() + timedelta(days=1)
+        starts_at = self._workday_slot(days=1, hour=10)
         create_appointment(
             patient=self.patient.patient_profile,
             doctor=self.doctor.doctor_profile,

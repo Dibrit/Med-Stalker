@@ -1,3 +1,5 @@
+from datetime import time
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -164,6 +166,9 @@ class Appointment(models.Model):
         CANCELLED = "cancelled", _("Cancelled")
         COMPLETED = "completed", _("Completed")
 
+    WORKDAY_START = time(hour=8, minute=0)
+    WORKDAY_END = time(hour=18, minute=0)
+
     patient = models.ForeignKey(
         PatientProfile,
         on_delete=models.CASCADE,
@@ -205,6 +210,28 @@ class Appointment(models.Model):
 
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             errors["ends_at"] = _("Appointment end must be after its start.")
+
+        if self.starts_at and self.ends_at:
+            local_start = self.starts_at
+            local_end = self.ends_at
+            if local_start.tzinfo is not None:
+                local_start = local_start.astimezone()
+            if local_end.tzinfo is not None:
+                local_end = local_end.astimezone()
+
+            if local_start.date() != local_end.date():
+                errors["ends_at"] = _(
+                    "Appointment must start and end on the same workday."
+                )
+            else:
+                if local_start.weekday() > 4:
+                    errors["starts_at"] = _(
+                        "Appointments can only be scheduled Monday through Friday."
+                    )
+                if local_start.time() < self.WORKDAY_START:
+                    errors["starts_at"] = _("Appointment cannot start before 08:00.")
+                if local_end.time() > self.WORKDAY_END:
+                    errors["ends_at"] = _("Appointment must end by 18:00.")
 
         if (
             self.patient_id
