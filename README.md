@@ -1,81 +1,203 @@
-# Med-Stalker
-## Authors
-Alexandr Chernov & Nesvetailov Artem
+# Frontend
+## Main goal
 
-## Project Overview
+The frontend must provide a clean user interface for doctors and patients and connect to the backend through REST APIs.
 
-This project is a **Medical Web Application** built for a Web Development course.
+The application should support:
 
-The main goal of the system is to create a web platform where **doctors** and **patients** can interact through a structured medical record system. Doctors can manage patient-related medical data, assign diagnoses, create prescriptions or recommendations, and manage appointments. Patients can log in, view their own medical information, and book appointments with doctors.
-
-The project is designed as a full-stack application with:
-
-- **Backend:** Django + Django REST Framework
-- **Frontend:** Angular
-- **Database:** SQLite
-
-Both parts are stored in a **single monorepo**, but they are developed as **separate services** that communicate through a REST API.
+- login and logout
+- navigation between pages
+- viewing doctors
+- booking appointments
+- viewing patients
+- viewing diagnoses and prescriptions
+- creating and updating diagnosis/prescription data
+- handling API errors clearly
 
 ---
 
-## Main Purpose
+## What must be implemented
 
-The purpose of this project is to demonstrate how a modern web application can be built with:
+### 1. Routing
+Create routing with at least **3 named routes**.
 
-- separate frontend and backend layers
-- token-based authentication
-- REST API communication
-- CRUD operations
-- role-based access
-- structured project organization in a monorepo
+Recommended routes:
+- `/login`
+- `/patients`
+- `/patients/:id`
+- `/dashboard`
 
-This project is also intended to give two students a clear division of work:
-
-- one student focuses on the **backend**
-- one student focuses on the **frontend**
+The user should be able to navigate between pages from the UI.
 
 ---
 
-## Main Users
+### 2. Authentication
+Implement **JWT authentication flow**.
 
-### Doctor
-A doctor can:
-- log in to the system
-- view patients
-- review and manage appointments assigned to them
-- assign diagnoses
-- create prescriptions or recommendations
-- manage medical records
+Required:
+- login page
+- logout functionality
+- HTTP interceptor for attaching JWT token
+- protected pages for authenticated users only
 
-### Patient
-A patient can:
-- register for an account
-- log in to the system
-- browse doctors and request appointments
-- view their own diagnoses
-- view their own prescriptions and recommendations
+Behavior:
+- login sends credentials to backend
+- access token is stored on the client
+- logout clears stored tokens and redirects to login
 
 ---
 
-## Core Features
+### 3. Services and API communication
+Use Angular services with `HttpClient` for backend communication.
 
-- JWT-based patient registration, login, and logout
-- doctor directory and appointment booking
-- patient list and detail view
-- diagnosis management
-- prescription/recommendation management
-- protected API endpoints
-- frontend integration with backend API
-- clean separation between services
+Required:
+- at least **1 Angular service** for API calls
+
+Recommended services:
+- `AuthService`
+- `DoctorService`
+- `AppointmentService`
+- `PatientService`
+- `DiagnosisService`
+- `PrescriptionService`
+
+The frontend should call backend endpoints for:
+- login
+- logout
+- loading doctors
+- creating/updating appointments
+- loading patients
+- loading patient details
+- creating/updating/deleting diagnoses
+- creating/updating/deleting prescriptions
 
 ---
 
-## Repository Structure
+### 4. Interfaces
+Create TypeScript interfaces for API data.
 
-```text
-Med-Stalker/
-├── backend/
-├── frontend/
-├── docs/
-└── README.md
-```
+Recommended interfaces:
+- `User`
+- `Doctor`
+- `Appointment`
+- `Patient`
+- `Diagnosis`
+- `Prescription`
+- `AuthResponse`
+
+These interfaces should match backend JSON responses.
+
+---
+
+### 5. Forms
+Use `FormsModule` and `[(ngModel)]`.
+
+Required:
+- at least **4 form controls** using `[(ngModel)]`
+
+Recommended fields:
+- username
+- password
+- diagnosis title
+- diagnosis description
+- medication name
+- dosage
+
+Possible forms:
+- login form
+- appointment booking form
+- diagnosis form
+- prescription form
+
+---
+
+### 6. User actions that trigger API requests
+Implement at least **4 `(click)` events** that call the backend.
+
+Recommended:
+- login button
+- book appointment button
+- save diagnosis button
+- delete diagnosis button
+- save prescription button
+- logout button
+
+---
+
+### 7. Rendering data
+Use:
+- `@for` and `@if`
+
+or, if needed:
+- `*ngFor` and `*ngIf`
+
+Use them for:
+- patient list
+- diagnosis list
+- prescription list
+- showing error messages
+- showing loading or empty states
+
+---
+
+### 8. Error handling
+API errors must be handled and shown in the UI.
+
+Examples:
+- invalid login credentials
+- failed request to load patients
+- failed save/update/delete actions
+
+Recommended behavior:
+- show message near the form or content area
+- do not fail silently
+
+---
+
+### 9. Styling
+Apply basic CSS so the app looks clean and usable.
+
+Minimum expectations:
+- styled login form
+- readable lists or cards
+- spaced form fields
+- visible buttons
+- clear error/success messages
+
+The design can stay simple, but it should not look unfinished.
+
+---
+
+## Suggested pages/components
+
+### Pages
+- Login page
+- Dashboard page
+- Patient list page
+- Patient detail page
+
+### Components
+- Navbar
+- Doctor list
+- Appointment form
+- Appointment list
+- Diagnosis list
+- Diagnosis form
+- Prescription list
+- Prescription form
+- Error message block
+
+---
+
+## Requirements
+- Node.js LTS
+- npm
+- GNU Make (recommended, optional)
+
+---
+
+## How to run
+
+1. Install dependencies:
+   ```bash
+   npm install
