@@ -1,0 +1,24 @@
+<h2>Create Prescription</h2>
+
+<select [(ngModel)]="data.patient">
+  <option *ngFor="let p of patients" [value]="p.id">
+    {{ p.first_name }} {{ p.last_name }}
+  </option>
+</select>
+
+<select [(ngModel)]="data.diagnosis">
+  <option [ngValue]="null">No diagnosis</option>
+  <option *ngFor="let d of diagnoses" [value]="d.id">
+    {{ d.title }}
+  </option>
+</select>
+
+<input [(ngModel)]="data.medication_name" placeholder="Medication">
+
+<textarea [(ngModel)]="data.instructions" placeholder="Instructions"></textarea>
+
+<input [(ngModel)]="data.issued_at" type="datetime-local">
+
+<input [(ngModel)]="data.valid_until" type="date">
+
+<button (click)="submit()">Create</button>

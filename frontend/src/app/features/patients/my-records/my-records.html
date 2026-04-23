@@ -1,0 +1,42 @@
+<h2>My Medical Records</h2>
+
+@if (loading) {
+  <p>Loading...</p>
+}
+
+@if (!loading && patient) {
+
+  <h3>Patient: {{ patient.first_name }} {{ patient.last_name }}</h3>
+
+  <hr>
+
+  <h3>Diagnoses</h3>
+
+  @if (diagnoses.length === 0) {
+    <p>No diagnoses</p>
+  }
+
+  @for (d of diagnoses; track d.id) {
+    <div style="border:1px solid #ccc; padding:10px; margin:5px;">
+      <b>{{ d.disease_name }}</b>
+      <p>{{ d.description }}</p>
+      <small>Status: {{ d.status }}</small>
+    </div>
+  }
+
+  <hr>
+
+  <h3>Prescriptions</h3>
+
+  @if (prescriptions.length === 0) {
+    <p>No prescriptions</p>
+  }
+
+  @for (p of prescriptions; track p.id) {
+    <div style="border:1px solid #ccc; padding:10px; margin:5px;">
+      <b>{{ p.medication_name }}</b>
+      <p>{{ p.instructions }}</p>
+    </div>
+  }
+
+}

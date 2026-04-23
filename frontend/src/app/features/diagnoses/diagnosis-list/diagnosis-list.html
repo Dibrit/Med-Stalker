@@ -1,0 +1,14 @@
+<h2>Diagnoses</h2>
+
+<div *ngFor="let d of diagnoses" class="card">
+
+  <h3>{{ d.title }}</h3>
+  <p>{{ d.description }}</p>
+  <p>Status: {{ d.status }}</p>
+  <p>Date: {{ d.diagnosed_at }}</p>
+
+  <button (click)="delete(d.id)">
+    Delete
+  </button>
+
+</div>

@@ -1,0 +1,14 @@
+<h2>Prescriptions</h2>
+
+<div *ngFor="let p of prescriptions" class="card">
+
+  <h3>{{ p.medication_name }}</h3>
+  <p>{{ p.instructions }}</p>
+  <p>Issued: {{ p.issued_at }}</p>
+  <p>Valid until: {{ p.valid_until }}</p>
+
+  <button (click)="delete(p.id)">
+    Delete
+  </button>
+
+</div>
