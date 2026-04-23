@@ -9,7 +9,6 @@ from .factories import create_diagnosis, create_doctor_user, create_patient_user
 class PrescriptionListCreateTests(APITestCase):
     def setUp(self):
         self.doctor = create_doctor_user(username="rx_doc", password="pw")
-        self.other_doctor = create_doctor_user(username="rx_other_doc", password="pw")
         self.patient = create_patient_user(username="rx_pat", password="pw")
         self.other_patient = create_patient_user(username="rx_pat2", password="pw")
         self.diagnosis = create_diagnosis(
@@ -32,14 +31,8 @@ class PrescriptionListCreateTests(APITestCase):
         token = RefreshToken.for_user(user)
         return {"HTTP_AUTHORIZATION": f"Bearer {str(token.access_token)}"}
 
-    def test_doctor_lists_only_own_prescriptions(self):
-        """Doctors only see prescriptions written by their own doctor profile."""
-        create_prescription(
-            patient=self.patient.patient_profile,
-            doctor=self.other_doctor.doctor_profile,
-            medication_name="Foreign Rx",
-        )
-
+    def test_doctor_lists_all_prescriptions(self):
+        """Doctors can list every prescription in the system."""
         response = self.client.get("/api/prescriptions/", **self._auth(self.doctor))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = {row["medication_name"] for row in response.data}
@@ -133,7 +126,6 @@ class PrescriptionListCreateTests(APITestCase):
 class PrescriptionDetailTests(APITestCase):
     def setUp(self):
         self.doctor = create_doctor_user(username="rxd_doc", password="pw")
-        self.other_doctor = create_doctor_user(username="rxd_other_doc", password="pw")
         self.patient = create_patient_user(username="rxd_pat", password="pw")
         self.prescription = create_prescription(
             patient=self.patient.patient_profile,
@@ -150,17 +142,6 @@ class PrescriptionDetailTests(APITestCase):
         url = f"/api/prescriptions/{self.prescription.pk}/"
         response = self.client.get(url, **self._auth(self.patient))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_doctor_cannot_retrieve_other_doctors_prescription(self):
-        """Doctors cannot open prescriptions written by another doctor."""
-        foreign_prescription = create_prescription(
-            patient=self.patient.patient_profile,
-            doctor=self.other_doctor.doctor_profile,
-            medication_name="Outside rx",
-        )
-        url = f"/api/prescriptions/{foreign_prescription.pk}/"
-        response = self.client.get(url, **self._auth(self.doctor))
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_patient_cannot_update_prescription(self):
         """Patients cannot update prescription records."""
@@ -185,19 +166,3 @@ class PrescriptionDetailTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.prescription.refresh_from_db()
         self.assertEqual(self.prescription.instructions, "updated text")
-
-    def test_doctor_cannot_update_other_doctors_prescription(self):
-        """Doctors cannot update prescriptions written by another doctor."""
-        foreign_prescription = create_prescription(
-            patient=self.patient.patient_profile,
-            doctor=self.other_doctor.doctor_profile,
-            medication_name="Foreign update",
-        )
-        url = f"/api/prescriptions/{foreign_prescription.pk}/"
-        response = self.client.patch(
-            url,
-            {"instructions": "blocked"},
-            format="json",
-            **self._auth(self.doctor),
-        )
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

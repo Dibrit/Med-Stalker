@@ -48,7 +48,6 @@ def create_appointment(*, patient: PatientProfile, doctor: DoctorProfile, **kwar
         "status": Appointment.Status.REQUESTED,
         "reason": "Routine checkup",
         "starts_at": starts_at,
-        "ends_at": starts_at + timedelta(minutes=45),
     }
     defaults.update(kwargs)
     return Appointment.objects.create(patient=patient, doctor=doctor, **defaults)

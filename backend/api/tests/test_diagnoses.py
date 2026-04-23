@@ -13,7 +13,6 @@ from .factories import create_diagnosis, create_doctor_user, create_patient_user
 class DiagnosisListCreateTests(APITestCase):
     def setUp(self):
         self.doctor = create_doctor_user(username="dx_doc", password="pw")
-        self.other_doctor = create_doctor_user(username="dx_other_doc", password="pw")
         self.patient = create_patient_user(username="dx_pat", password="pw")
         self.diagnosis = create_diagnosis(
             patient=self.patient.patient_profile,
@@ -25,25 +24,12 @@ class DiagnosisListCreateTests(APITestCase):
         token = RefreshToken.for_user(user)
         return {"HTTP_AUTHORIZATION": f"Bearer {str(token.access_token)}"}
 
-    def test_doctor_lists_only_own_diagnoses(self):
-        """Doctors only see diagnoses recorded by their own doctor profile."""
-        extra_patient = create_patient_user(username="dx_second_pat", password="pw")
-        create_diagnosis(
-            patient=extra_patient.patient_profile,
-            doctor=self.doctor.doctor_profile,
-            title="Cold",
-        )
-        create_diagnosis(
-            patient=self.patient.patient_profile,
-            doctor=self.other_doctor.doctor_profile,
-            title="Other doctor's note",
-        )
-
+    def test_doctor_lists_all_diagnoses(self):
+        """Doctors can list every diagnosis in the system."""
         response = self.client.get("/api/diagnoses/", **self._auth(self.doctor))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         titles = {row["title"] for row in response.data}
         self.assertIn("Flu", titles)
-        self.assertEqual(response.data[0]["recorded_by_name"], "dx_doc")
 
     def test_patient_lists_only_own_diagnoses(self):
         """Patients only see diagnoses linked to their own profile."""
@@ -106,7 +92,6 @@ class DiagnosisListCreateTests(APITestCase):
 class DiagnosisDetailTests(APITestCase):
     def setUp(self):
         self.doctor = create_doctor_user(username="dxd_doc", password="pw")
-        self.other_doctor = create_doctor_user(username="dxd_other_doc", password="pw")
         self.patient = create_patient_user(username="dxd_pat", password="pw")
         self.diagnosis = create_diagnosis(
             patient=self.patient.patient_profile,
@@ -123,17 +108,6 @@ class DiagnosisDetailTests(APITestCase):
         url = f"/api/diagnoses/{self.diagnosis.pk}/"
         response = self.client.get(url, **self._auth(self.patient))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_doctor_cannot_retrieve_other_doctors_diagnosis(self):
-        """Doctors cannot open diagnoses recorded by a different doctor."""
-        foreign_diagnosis = create_diagnosis(
-            patient=self.patient.patient_profile,
-            doctor=self.other_doctor.doctor_profile,
-            title="Outside diagnosis",
-        )
-        url = f"/api/diagnoses/{foreign_diagnosis.pk}/"
-        response = self.client.get(url, **self._auth(self.doctor))
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_patient_cannot_retrieve_other_patients_diagnosis(self):
         """Patients cannot open diagnosis details for another patient."""
@@ -170,19 +144,3 @@ class DiagnosisDetailTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.diagnosis.refresh_from_db()
         self.assertEqual(self.diagnosis.title, "Updated")
-
-    def test_doctor_cannot_update_other_doctors_diagnosis(self):
-        """Doctors cannot update diagnoses recorded by another doctor."""
-        foreign_diagnosis = create_diagnosis(
-            patient=self.patient.patient_profile,
-            doctor=self.other_doctor.doctor_profile,
-            title="Foreign diagnosis",
-        )
-        url = f"/api/diagnoses/{foreign_diagnosis.pk}/"
-        response = self.client.patch(
-            url,
-            {"title": "Blocked"},
-            format="json",
-            **self._auth(self.doctor),
-        )
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

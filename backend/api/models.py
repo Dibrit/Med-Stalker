@@ -1,8 +1,9 @@
-from datetime import time
+from datetime import time, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import DateTimeField, ExpressionWrapper, F
 from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
@@ -168,6 +169,7 @@ class Appointment(models.Model):
 
     WORKDAY_START = time(hour=8, minute=0)
     WORKDAY_END = time(hour=18, minute=0)
+    DURATION = timedelta(hours=1)
 
     patient = models.ForeignKey(
         PatientProfile,
@@ -189,7 +191,6 @@ class Appointment(models.Model):
         help_text=_("Optional description of symptoms or the reason for the visit."),
     )
     starts_at = models.DateTimeField()
-    ends_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -208,19 +209,17 @@ class Appointment(models.Model):
     def clean(self):
         errors = {}
 
-        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
-            errors["ends_at"] = _("Appointment end must be after its start.")
-
-        if self.starts_at and self.ends_at:
+        if self.starts_at:
+            local_end_dt = self.ends_at
             local_start = self.starts_at
-            local_end = self.ends_at
+            local_end = local_end_dt
             if local_start.tzinfo is not None:
                 local_start = local_start.astimezone()
             if local_end.tzinfo is not None:
                 local_end = local_end.astimezone()
 
             if local_start.date() != local_end.date():
-                errors["ends_at"] = _(
+                errors["starts_at"] = _(
                     "Appointment must start and end on the same workday."
                 )
             else:
@@ -231,20 +230,23 @@ class Appointment(models.Model):
                 if local_start.time() < self.WORKDAY_START:
                     errors["starts_at"] = _("Appointment cannot start before 08:00.")
                 if local_end.time() > self.WORKDAY_END:
-                    errors["ends_at"] = _("Appointment must end by 18:00.")
+                    errors["starts_at"] = _("Appointment must start early enough to end by 18:00.")
 
-        if (
-            self.patient_id
-            and self.doctor_id
-            and self.starts_at
-            and self.ends_at
-            and self.status in self.blocking_statuses()
-        ):
-            overlapping = Appointment.objects.filter(
-                status__in=self.blocking_statuses(),
-                starts_at__lt=self.ends_at,
-                ends_at__gt=self.starts_at,
-            ).exclude(pk=self.pk)
+        if self.patient_id and self.doctor_id and self.starts_at and self.status in self.blocking_statuses():
+            overlapping = (
+                Appointment.objects.annotate(
+                    ends_at_calc=ExpressionWrapper(
+                        F("starts_at") + self.DURATION,
+                        output_field=DateTimeField(),
+                    )
+                )
+                .filter(
+                    status__in=self.blocking_statuses(),
+                    starts_at__lt=self.ends_at,
+                    ends_at_calc__gt=self.starts_at,
+                )
+                .exclude(pk=self.pk)
+            )
             if overlapping.filter(doctor_id=self.doctor_id).exists():
                 errors["doctor"] = _(
                     "The selected doctor already has an appointment during that time."
@@ -260,6 +262,12 @@ class Appointment(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+    @property
+    def ends_at(self):
+        if self.starts_at is None:
+            return None
+        return self.starts_at + self.DURATION
 
     def __str__(self) -> str:
         return f"{self.patient} with {self.doctor} at {self.starts_at:%Y-%m-%d %H:%M}"

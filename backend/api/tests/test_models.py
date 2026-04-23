@@ -55,7 +55,6 @@ class AppointmentValidationTests(TestCase):
             patient=self.patient.patient_profile,
             doctor=self.doctor.doctor_profile,
             starts_at=starts_at,
-            ends_at=starts_at + timedelta(minutes=45),
         )
 
         with self.assertRaises(ValidationError):
@@ -63,5 +62,4 @@ class AppointmentValidationTests(TestCase):
                 patient=self.other_patient.patient_profile,
                 doctor=self.doctor.doctor_profile,
                 starts_at=starts_at + timedelta(minutes=15),
-                ends_at=starts_at + timedelta(minutes=60),
             )
