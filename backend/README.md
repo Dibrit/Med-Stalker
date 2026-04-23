@@ -69,15 +69,6 @@ Minimum required functionality:
 When creating medical records:
 - link created objects to the authenticated user with `request.user`
 
-Access model implemented in this repo:
-- doctors and patients can list doctors
-- doctors can list **all patients**
-- doctors can list/retrieve/update appointments assigned to their own `DoctorProfile`
-- doctors can only list/retrieve/update/delete diagnoses that were recorded by their own `DoctorProfile`
-- doctors can only list/retrieve/update/delete prescriptions that were written by their own `DoctorProfile`
-- patients can list/retrieve/update their own appointments and create new appointments
-- patients can only view their own patient profile, diagnoses, and prescriptions
-
 ---
 
 ### 4. Serializers

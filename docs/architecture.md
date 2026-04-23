@@ -50,10 +50,8 @@ There is no `role` field returned by the API. “Admin” is only relevant to Dj
 
 ### Doctor capabilities (REST API)
 - view all patients
-- view only diagnoses recorded by their own doctor profile
-- view only prescriptions written by their own doctor profile
-- create/update/delete their own diagnoses
-- create/update/delete their own prescriptions
+- create/update/delete diagnoses
+- create/update/delete prescriptions
 
 ### Patient capabilities (REST API)
 - register for a patient account
