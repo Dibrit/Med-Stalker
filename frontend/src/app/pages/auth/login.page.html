@@ -1,0 +1,145 @@
+<section class="auth">
+  <div class="auth__hd">
+    <h1>Sign in</h1>
+    <p class="sub">Doctors and patients use the same login. Patients can also register here.</p>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Authentication">
+    <button
+      class="tab"
+      type="button"
+      [class.is-active]="tab === 'login'"
+      (click)="switchTab('login')"
+      role="tab"
+      [attr.aria-selected]="tab === 'login'"
+    >
+      Login
+    </button>
+    <button
+      class="tab"
+      type="button"
+      [class.is-active]="tab === 'register'"
+      (click)="switchTab('register')"
+      role="tab"
+      [attr.aria-selected]="tab === 'register'"
+    >
+      Register (patient)
+    </button>
+  </div>
+
+  <div class="panel">
+    <div class="panel__bd">
+      <form *ngIf="tab === 'login'" #loginForm="ngForm" (ngSubmit)="submitLogin(loginForm)">
+        <div class="alert alert--error" *ngIf="loginError">{{ loginError }}</div>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="username">Username</label>
+            <input
+              class="input"
+              id="username"
+              name="username"
+              required
+              [(ngModel)]="loginModel.username"
+              autocomplete="username"
+            />
+            <div class="err" *ngIf="loginForm.submitted && !loginModel.username">Required.</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="password">Password</label>
+            <input
+              class="input"
+              id="password"
+              name="password"
+              type="password"
+              required
+              [(ngModel)]="loginModel.password"
+              autocomplete="current-password"
+            />
+            <div class="err" *ngIf="loginForm.submitted && !loginModel.password">Required.</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn--primary" type="submit" [disabled]="loading">
+            {{ loading ? 'Signing in…' : 'Login' }}
+          </button>
+        </div>
+      </form>
+
+      <form *ngIf="tab === 'register'" #regForm="ngForm" (ngSubmit)="submitRegister(regForm)">
+        <div class="alert alert--error" *ngIf="registerNonFieldError">{{ registerNonFieldError }}</div>
+
+        <div class="grid grid--2">
+          <div class="field">
+            <label class="label" for="r-username">Username</label>
+            <input class="input" id="r-username" name="username" required [(ngModel)]="registerModel.username" />
+            <div class="err" *ngIf="registerFieldErrors['username']?.length">{{ registerFieldErrors['username'][0] }}</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="r-email">Email</label>
+            <input class="input" id="r-email" name="email" type="email" required [(ngModel)]="registerModel.email" />
+            <div class="err" *ngIf="registerFieldErrors['email']?.length">{{ registerFieldErrors['email'][0] }}</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="r-first">First name</label>
+            <input class="input" id="r-first" name="first_name" required [(ngModel)]="registerModel.first_name" />
+            <div class="err" *ngIf="registerFieldErrors['first_name']?.length">{{ registerFieldErrors['first_name'][0] }}</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="r-last">Last name</label>
+            <input class="input" id="r-last" name="last_name" required [(ngModel)]="registerModel.last_name" />
+            <div class="err" *ngIf="registerFieldErrors['last_name']?.length">{{ registerFieldErrors['last_name'][0] }}</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="r-dob">Date of birth (optional)</label>
+            <input class="input" id="r-dob" name="date_of_birth" type="date" [(ngModel)]="registerModel.date_of_birth" />
+            <div class="err" *ngIf="registerFieldErrors['date_of_birth']?.length">{{ registerFieldErrors['date_of_birth'][0] }}</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="r-phone">Phone (optional)</label>
+            <input class="input" id="r-phone" name="phone" [(ngModel)]="registerModel.phone" />
+            <div class="err" *ngIf="registerFieldErrors['phone']?.length">{{ registerFieldErrors['phone'][0] }}</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="r-pass">Password</label>
+            <input class="input" id="r-pass" name="password" type="password" required [(ngModel)]="registerModel.password" />
+            <div class="err" *ngIf="registerFieldErrors['password']?.length">{{ registerFieldErrors['password'][0] }}</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="r-pass2">Confirm password</label>
+            <input
+              class="input"
+              id="r-pass2"
+              name="password_confirm"
+              type="password"
+              required
+              [(ngModel)]="registerModel.password_confirm"
+            />
+            <div class="err" *ngIf="registerFieldErrors['password_confirm']?.length">
+              {{ registerFieldErrors['password_confirm'][0] }}
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn--primary" type="submit" [disabled]="loading">
+            {{ loading ? 'Creating…' : 'Create account' }}
+          </button>
+          <button class="btn btn--secondary" type="button" (click)="switchTab('login')" [disabled]="loading">
+            Back to login
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+

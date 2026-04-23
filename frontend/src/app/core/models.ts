@@ -16,19 +16,6 @@ export interface Patient {
   updated_at: string;
 }
 
-export interface Doctor {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  full_name: string;
-  specialization?: string | null;
-  license_number?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface RegisterResponse extends AuthResponse {
   patient: Patient;
 }
@@ -61,16 +48,42 @@ export interface Prescription {
   updated_at: string;
 }
 
-export type AppointmentStatus = 'requested' | 'confirmed' | 'cancelled' | 'completed';
+export interface Doctor {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  specialization: string;
+  license_number: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Appointment {
   id: number;
   patient: Patient;
   doctor: Doctor;
-  status: AppointmentStatus;
+  status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
   reason?: string | null;
   starts_at: string;
   ends_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Message {
+  id: number;
+  sender_type: 'patient' | 'doctor';
+  sender_patient: number | null;
+  sender_doctor: number | null;
+  recipient_patient: number | null;
+  recipient_doctor: number | null;
+  sender_name: string;
+  recipient_name: string;
+  content: string;
+  is_read: boolean;
   created_at: string;
   updated_at: string;
 }
